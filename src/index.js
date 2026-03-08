@@ -4,7 +4,7 @@ import router from "./dataset_router.json";
 import rpwdSections from "./rpwd_sections.json";
 
 /* =========================
-   GLOBAL CACHES
+GLOBAL CACHES
 ========================= */
 
 const articleMap = new Map();
@@ -13,7 +13,7 @@ for (const p of posts) articleMap.set(p.id, p);
 const embeddingCache = new Map();
 
 /* =========================
-   COSINE SIMILARITY
+COSINE SIMILARITY
 ========================= */
 
 function cosineSimilarity(a,b){
@@ -29,7 +29,7 @@ return dot/(Math.sqrt(normA)*Math.sqrt(normB));
 }
 
 /* =========================
-   NORMALIZE QUERY
+NORMALIZE QUERY
 ========================= */
 
 function normalizeQuery(q){
@@ -41,17 +41,17 @@ return q
 }
 
 /* =========================
-   QUERY REWRITE
+QUERY REWRITE
 ========================= */
 
 async function rewriteQuery(question,env){
 
-const prompt=`Rewrite this question into a concise search query.
+const prompt=`Rewrite the user question into a short search query.
 
 Question:
 ${question}
 
-Output only the improved query.`
+Return only the rewritten query.`
 
 const res=await fetch(
 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
@@ -71,7 +71,7 @@ return data?.candidates?.[0]?.content?.parts?.[0]?.text || question
 }
 
 /* =========================
-   ENTITY EXTRACTION
+ENTITY EXTRACTION
 ========================= */
 
 function extractEntities(text){
@@ -97,7 +97,7 @@ return entities
 }
 
 /* =========================
-   GEMINI EMBEDDING
+GEMINI EMBEDDING
 ========================= */
 
 async function embedQuery(question,env){
@@ -105,15 +105,11 @@ async function embedQuery(question,env){
 if(embeddingCache.has(question))
 return embeddingCache.get(question)
 
-const controller=new AbortController()
-setTimeout(()=>controller.abort(),8000)
-
 const res=await fetch(
 `https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=${env.GEMINI_API}`,
 {
 method:"POST",
 headers:{"Content-Type":"application/json"},
-signal:controller.signal,
 body:JSON.stringify({
 content:{parts:[{text:question}]}
 })
@@ -133,7 +129,7 @@ return vector
 }
 
 /* =========================
-   SEMANTIC SEARCH
+SEMANTIC SEARCH
 ========================= */
 
 async function semanticSearch(query,env){
@@ -146,9 +142,9 @@ for(const item of vectorIndex){
 
 const score=cosineSimilarity(qVector,item.vector)
 
-if(score>0.32)
+if(score > 0.20)
 results.push({
-id:item.id,
+article_id:item.article_id || item.id,
 score
 })
 
@@ -160,7 +156,7 @@ return results
 }
 
 /* =========================
-   ADAPTIVE RETRIEVAL
+ADAPTIVE RETRIEVAL
 ========================= */
 
 function adaptiveRetrieve(results){
@@ -177,7 +173,7 @@ return results.slice(0,7)
 }
 
 /* =========================
-   ARTICLE CONTEXT
+ARTICLE CONTEXT
 ========================= */
 
 function retrieveArticles(matches){
@@ -191,7 +187,7 @@ const article = articleMap.get(m.article_id)
 if(!article) continue
 
 const clean=article.content
-.replace(/<[^>]+>/g,"")
+.replace(/<[^>]+>/g," ")
 .replace(/\s+/g," ")
 .trim()
 
@@ -219,7 +215,7 @@ return {ctx,sources}
 }
 
 /* =========================
-   WIKIPEDIA
+WIKIPEDIA
 ========================= */
 
 async function wikiSearch(query){
@@ -243,27 +239,60 @@ return ""
 }
 
 /* =========================
-   PROMPT BUILDER
+DUCKDUCKGO SEARCH
+========================= */
+
+async function duckSearch(query){
+
+try{
+
+const res = await fetch(
+`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`
+)
+
+if(!res.ok) return ""
+
+const data = await res.json()
+
+let text=""
+
+if(data.Abstract)
+text+=data.Abstract+"\n"
+
+if(data.RelatedTopics){
+
+for(const t of data.RelatedTopics.slice(0,3)){
+if(t.Text) text+=t.Text+"\n"
+}
+
+}
+
+return text.slice(0,500)
+
+}catch{
+return ""
+}
+
+}
+
+/* =========================
+PROMPT BUILDER
 ========================= */
 
 function buildPrompt(data){
 
-return `You are EqualEdge AI.
+return `You are EqualEdge AI, a factual assistant specialized in disability rights and accessibility in India.
 
-Expertise:
-• Disability rights law
-• RPwD Act 2016
-• Accessibility standards
-• Inclusive education
-• Assistive technology
+Your knowledge sources include:
+- Rights of Persons with Disabilities Act 2016
+- Accessibility law
+- Inclusive education policy
+- Assistive technology
 
 User Question:
 ${data.question}
 
-Detected Entities:
-${data.entities.join(", ")}
-
-RPwD Context:
+RPwD Legal Context:
 ${data.rpwd}
 
 Relevant Articles:
@@ -272,14 +301,17 @@ ${data.articles}
 Wikipedia Context:
 ${data.wiki}
 
+Web Search Context:
+${data.web}
+
 Instructions:
-Provide a clear factual answer.
-Cite article titles if used.
+Use the provided context to answer the question clearly and accurately.
+If relevant, cite RPwD Act sections or article titles.
 Avoid speculation.`
 }
 
 /* =========================
-   WORKER HANDLER
+WORKER HANDLER
 ========================= */
 
 export default {
@@ -330,14 +362,18 @@ const rpwd=rpwdSections
 .map(s=>`${s.section} ${s.title}\n${s.content}`)
 .join("\n\n")
 
-const wiki=await wikiSearch(rewritten)
+const [wiki,web]=await Promise.all([
+wikiSearch(rewritten),
+duckSearch(rewritten)
+])
 
 const prompt=buildPrompt({
 question:rewritten,
 entities,
 rpwd,
 articles:ctx,
-wiki
+wiki,
+web
 })
 
 const aiRes=await fetch(
@@ -349,7 +385,7 @@ body:JSON.stringify({
 contents:[{parts:[{text:prompt}]}],
 generationConfig:{
 temperature:0.2,
-maxOutputTokens:700
+maxOutputTokens:800
 }
 })
 }

@@ -168,3 +168,10 @@ dist
 .env*
 !.env.example
 .wrangler/
+data/venv/
+venv/
+*.pt
+*.bin
+*.onnx
+*.ckpt
+__pycache__/

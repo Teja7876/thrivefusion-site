@@ -3,392 +3,379 @@ import posts from "../posts_clean.json";
 import router from "./dataset_router.json";
 import rpwdSections from "./rpwd_sections.json";
 
-/* ================================
-   GLOBAL DATA CACHE
-================================ */
+/* =========================
+   GLOBAL CACHES
+========================= */
 
 const articleMap = new Map();
 for (const p of posts) articleMap.set(p.id, p);
 
-/* ================================
+const embeddingCache = new Map();
+
+/* =========================
    COSINE SIMILARITY
-================================ */
+========================= */
 
-function cosineSimilarity(a, b) {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
+function cosineSimilarity(a,b){
+let dot=0,normA=0,normB=0;
 
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+for(let i=0;i<a.length;i++){
+dot+=a[i]*b[i];
+normA+=a[i]*a[i];
+normB+=b[i]*b[i];
 }
 
-/* ================================
-   LIGHTWEIGHT QUERY VECTOR
-   (hash-based fallback embedding)
-================================ */
-
-function createQueryVector(text, dim = 384) {
-  const vector = new Array(dim).fill(0);
-  const words = text.toLowerCase().split(/\W+/);
-
-  for (const word of words) {
-    let hash = 0;
-    for (let i = 0; i < word.length; i++) {
-      hash = (hash << 5) - hash + word.charCodeAt(i);
-      hash |= 0;
-    }
-
-    const index = Math.abs(hash) % dim;
-    vector[index] += 1;
-  }
-
-  const norm = Math.sqrt(vector.reduce((s, v) => s + v * v, 0));
-
-  return vector.map(v => v / (norm || 1));
+return dot/(Math.sqrt(normA)*Math.sqrt(normB));
 }
 
-/* ================================
+/* =========================
+   NORMALIZE QUERY
+========================= */
+
+function normalizeQuery(q){
+return q
+.toLowerCase()
+.replace(/[^\w\s]/g,"")
+.replace(/\s+/g," ")
+.trim();
+}
+
+/* =========================
+   QUERY REWRITE
+========================= */
+
+async function rewriteQuery(question,env){
+
+const prompt=`Rewrite this question into a concise search query.
+
+Question:
+${question}
+
+Output only the improved query.`
+
+const res=await fetch(
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
+{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+contents:[{parts:[{text:prompt}]}],
+generationConfig:{temperature:0.1,maxOutputTokens:40}
+})
+}
+)
+
+const data=await res.json()
+
+return data?.candidates?.[0]?.content?.parts?.[0]?.text || question
+}
+
+/* =========================
+   ENTITY EXTRACTION
+========================= */
+
+function extractEntities(text){
+
+const entities=[]
+
+if(/rpwd|disabilities act/i.test(text))
+entities.push("RPwD")
+
+if(/reservation/i.test(text))
+entities.push("reservation")
+
+if(/employment|job/i.test(text))
+entities.push("employment")
+
+if(/education|student/i.test(text))
+entities.push("education")
+
+if(/assistive/i.test(text))
+entities.push("assistive")
+
+return entities
+}
+
+/* =========================
+   GEMINI EMBEDDING
+========================= */
+
+async function embedQuery(question,env){
+
+if(embeddingCache.has(question))
+return embeddingCache.get(question)
+
+const controller=new AbortController()
+setTimeout(()=>controller.abort(),8000)
+
+const res=await fetch(
+`https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=${env.GEMINI_API}`,
+{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+signal:controller.signal,
+body:JSON.stringify({
+content:{parts:[{text:question}]}
+})
+}
+)
+
+const data=await res.json()
+
+const vector=data?.embedding?.values
+
+if(!vector)
+throw new Error("Embedding failed")
+
+embeddingCache.set(question,vector)
+
+return vector
+}
+
+/* =========================
    SEMANTIC SEARCH
-================================ */
+========================= */
 
-function semanticSearch(question) {
+async function semanticSearch(query,env){
 
-  const qVector = createQueryVector(question);
+const qVector=await embedQuery(query,env)
 
-  const results = [];
+const results=[]
 
-  for (const item of vectorIndex) {
+for(const item of vectorIndex){
 
-    const score = cosineSimilarity(qVector, item.vector);
+const score=cosineSimilarity(qVector,item.vector)
 
-    if (score > 0.35) {
-      results.push({
-        id: item.id,
-        score
-      });
-    }
-  }
+if(score>0.32)
+results.push({
+id:item.id,
+score
+})
 
-  results.sort((a, b) => b.score - a.score);
-
-  return results.slice(0, 4);
 }
 
-/* ================================
+results.sort((a,b)=>b.score-a.score)
+
+return results
+}
+
+/* =========================
+   ADAPTIVE RETRIEVAL
+========================= */
+
+function adaptiveRetrieve(results){
+
+if(results.length===0) return []
+
+if(results[0].score>0.75)
+return results.slice(0,3)
+
+if(results[0].score>0.55)
+return results.slice(0,5)
+
+return results.slice(0,7)
+}
+
+/* =========================
    ARTICLE CONTEXT
-================================ */
+========================= */
 
-function retrieveArticles(matches) {
+function retrieveArticles(matches){
 
-  let ctx = "";
+let ctx=""
+const sources=[]
 
-  for (const m of matches) {
+for(const m of matches){
 
-    const article = articleMap.get(m.id);
+const article = articleMap.get(m.article_id)
+if(!article) continue
 
-    if (!article) continue;
+const clean=article.content
+.replace(/<[^>]+>/g,"")
+.replace(/\s+/g," ")
+.trim()
 
-    const clean = article.content
-      .replace(/<[^>]+>/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    ctx += `
+ctx+=`
 TITLE: ${article.title}
 
 CONTENT:
-${clean.slice(0, 800)}
+${clean.slice(0,700)}
 
-SIMILARITY: ${m.score.toFixed(3)}
+SOURCE:${article.id}
+SIMILARITY:${m.score.toFixed(3)}
 
 ---
-`;
-  }
+`
 
-  return ctx;
+sources.push({
+id:article.id,
+title:article.title,
+score:m.score
+})
+
 }
 
-/* ================================
-   WIKIPEDIA SEARCH
-================================ */
-
-async function wikiSearch(query) {
-
-  try {
-
-    const res = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
-    );
-
-    if (!res.ok) return "";
-
-    const data = await res.json();
-
-    return data.extract
-      ? `WIKIPEDIA:\n${data.extract.slice(0, 600)}`
-      : "";
-
-  } catch {
-    return "";
-  }
+return {ctx,sources}
 }
 
-/* ================================
-   DUCKDUCKGO SEARCH
-================================ */
+/* =========================
+   WIKIPEDIA
+========================= */
 
-async function duckSearch(query) {
+async function wikiSearch(query){
 
-  try {
+try{
 
-    const controller = new AbortController();
+const res=await fetch(
+`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
+)
 
-    const timeout = setTimeout(() => controller.abort(), 3500);
+if(!res.ok) return ""
 
-    const res = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`,
-      { signal: controller.signal }
-    );
+const data=await res.json()
 
-    clearTimeout(timeout);
+return data.extract?.slice(0,500) || ""
 
-    if (!res.ok) return "";
-
-    const data = await res.json();
-
-    let text = "";
-
-    if (data.Abstract) text += data.Abstract + "\n";
-
-    if (data.RelatedTopics) {
-
-      for (const t of data.RelatedTopics.slice(0, 3)) {
-        if (t.Text) text += t.Text + "\n";
-      }
-    }
-
-    return text.slice(0, 500);
-
-  } catch {
-    return "";
-  }
+}catch{
+return ""
 }
 
-/* ================================
-   DOMAIN DETECTION
-================================ */
-
-function detectDomain(q) {
-
-  if (/student|education|school/i.test(q))
-    return "education";
-
-  if (/job|employment|work/i.test(q))
-    return "employment";
-
-  if (/hospital|health|medical/i.test(q))
-    return "healthcare";
-
-  if (/assistive|technology|device/i.test(q))
-    return "assistive_technology";
-
-  return "legal";
 }
 
-/* ================================
+/* =========================
    PROMPT BUILDER
-================================ */
+========================= */
 
-function buildPrompt({
-  question,
-  rpwd,
-  articles,
-  datasets,
-  wiki,
-  web
-}) {
+function buildPrompt(data){
 
-  return `
-You are EqualEdge AI.
+return `You are EqualEdge AI.
 
-You specialize in:
-• Disability rights
-• Accessibility law
+Expertise:
+• Disability rights law
+• RPwD Act 2016
+• Accessibility standards
 • Inclusive education
 • Assistive technology
-• Government disability schemes in India
 
-RPwD references:
-${rpwd}
+User Question:
+${data.question}
 
-Relevant articles:
-${articles}
+Detected Entities:
+${data.entities.join(", ")}
 
-Dataset references:
-${datasets}
+RPwD Context:
+${data.rpwd}
 
-Wikipedia context:
-${wiki}
+Relevant Articles:
+${data.articles}
 
-External web context:
-${web}
-
-User question:
-${question}
+Wikipedia Context:
+${data.wiki}
 
 Instructions:
-Answer clearly and factually.
-Cite RPwD Act sections when relevant.
-Avoid speculation.
-`;
+Provide a clear factual answer.
+Cite article titles if used.
+Avoid speculation.`
 }
 
-/* ================================
+/* =========================
    WORKER HANDLER
-================================ */
+========================= */
 
 export default {
 
-  async fetch(request, env) {
+async fetch(request,env){
 
-    const cors = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "POST, OPTIONS"
-    };
+const cors={
+"Access-Control-Allow-Origin":"*",
+"Access-Control-Allow-Headers":"Content-Type",
+"Access-Control-Allow-Methods":"POST, OPTIONS"
+}
 
-    const headers = { ...cors, "Content-Type": "application/json" };
+const headers={...cors,"Content-Type":"application/json"}
 
-    const url = new URL(request.url);
+const url=new URL(request.url)
 
-    if (request.method === "OPTIONS")
-      return new Response(null, { headers: cors });
+if(request.method==="OPTIONS")
+return new Response(null,{headers:cors})
 
-    if (url.pathname !== "/ask")
-      return new Response(
-        JSON.stringify({
-          status: "EqualEdge AI running",
-          endpoint: "/ask"
-        }),
-        { headers }
-      );
+if(url.pathname!=="/ask")
+return new Response(JSON.stringify({status:"EqualEdge AI running"}),{headers})
 
-    if (request.method !== "POST")
-      return new Response(
-        JSON.stringify({ error: "Method not allowed" }),
-        { status: 405, headers }
-      );
+if(request.method!=="POST")
+return new Response(JSON.stringify({error:"Method not allowed"}),{status:405,headers})
 
-    try {
+try{
 
-      let question;
+const {question}=await request.json()
 
-      const raw = await request.text();
+if(!question)
+return new Response(JSON.stringify({error:"Question required"}),{status:400,headers})
 
-      try {
-        question = JSON.parse(raw).question;
-      } catch {
-        const params = new URLSearchParams(raw);
-        question = params.get("question");
-      }
+const normalized=normalizeQuery(question)
 
-      if (!question)
-        return new Response(
-          JSON.stringify({ error: "Question required" }),
-          { status: 400, headers }
-        );
+const rewritten=await rewriteQuery(normalized,env)
 
-      question = question.trim();
+const entities=extractEntities(rewritten)
 
-      const matches = semanticSearch(question);
+const rawMatches=await semanticSearch(rewritten,env)
 
-      const articleContext = retrieveArticles(matches);
+const matches=adaptiveRetrieve(rawMatches)
 
-      const q = question.toLowerCase();
+const {ctx,sources}=retrieveArticles(matches)
 
-      const domain = detectDomain(q);
+const rpwd=rpwdSections
+.filter(s=>entities.some(e=>s.keywords?.includes(e)))
+.slice(0,3)
+.map(s=>`${s.section} ${s.title}\n${s.content}`)
+.join("\n\n")
 
-      const relevantSections = rpwdSections
-        .filter(s => (s.keywords || [])
-        .some(k => q.includes(k.toLowerCase())))
-        .slice(0, 3)
-        .map(s => `${s.section} - ${s.title}\n${s.content}`)
-        .join("\n\n");
+const wiki=await wikiSearch(rewritten)
 
-      const datasets = router
-        .filter(d => d.domain === domain)
-        .slice(0, 5);
+const prompt=buildPrompt({
+question:rewritten,
+entities,
+rpwd,
+articles:ctx,
+wiki
+})
 
-      const datasetContext = datasets.map(d => d.file).join("\n");
+const aiRes=await fetch(
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
+{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+contents:[{parts:[{text:prompt}]}],
+generationConfig:{
+temperature:0.2,
+maxOutputTokens:700
+}
+})
+}
+)
 
-      const [wikiContext, webContext] = await Promise.all([
-        wikiSearch(question),
-        duckSearch(question)
-      ]);
+const data=await aiRes.json()
 
-      const prompt = buildPrompt({
-        question,
-        rpwd: relevantSections,
-        articles: articleContext,
-        datasets: datasetContext,
-        wiki: wikiContext,
-        web: webContext
-      });
+const answer=
+data?.candidates?.[0]?.content?.parts?.[0]?.text
+||"No answer generated"
 
-      const controller = new AbortController();
+return new Response(JSON.stringify({
+answer,
+sources,
+semantic_matches:matches.length
+}),{headers})
 
-      setTimeout(() => controller.abort(), 15000);
+}catch(err){
 
-      const aiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 800
-            }
-          })
-        }
-      );
+return new Response(JSON.stringify({
+error:"Server error",
+details:err.message
+}),{status:500,headers})
 
-      if (!aiRes.ok)
-        throw new Error("AI service error");
+}
 
-      const data = await aiRes.json();
+}
 
-      const answer =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text
-        || "No answer generated";
-
-      return new Response(
-        JSON.stringify({
-          answer,
-          domain,
-          semantic_matches: matches.length,
-          web_context_used: !!webContext
-        }),
-        { headers }
-      );
-
-    } catch (err) {
-
-      return new Response(
-        JSON.stringify({
-          error: "Server error",
-          details: err.message
-        }),
-        { status: 500, headers }
-      );
-    }
-  }
-};
+}

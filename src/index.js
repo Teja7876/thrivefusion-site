@@ -2,253 +2,222 @@ import vectorIndex from "../vector_index.json";
 import posts from "../posts_clean.json";
 import router from "./dataset_router.json";
 import rpwdSections from "./rpwd_sections.json";
-import { pipeline } from "@xenova/transformers";
 
-/* =================================
-   GLOBAL CACHE
-================================= */
-
-let embedder;
-const embeddingCache = new Map();
-
-/* =================================
-   PRELOAD ARTICLES
-================================= */
+/* ================================
+   GLOBAL DATA CACHE
+================================ */
 
 const articleMap = new Map();
 for (const p of posts) articleMap.set(p.id, p);
 
-/* =================================
-   EMBEDDING MODEL LOADER
-================================= */
-
-async function getEmbedder(){
-
-if(!embedder){
-
-embedder = await pipeline(
-"feature-extraction",
-"Xenova/all-MiniLM-L6-v2"
-);
-
-}
-
-return embedder;
-
-}
-
-/* =================================
+/* ================================
    COSINE SIMILARITY
-================================= */
+================================ */
 
-function cosineSimilarity(a,b){
+function cosineSimilarity(a, b) {
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
 
-let dot=0,normA=0,normB=0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
 
-for(let i=0;i<a.length;i++){
-
-dot+=a[i]*b[i];
-normA+=a[i]*a[i];
-normB+=b[i]*b[i];
-
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-return dot/(Math.sqrt(normA)*Math.sqrt(normB));
+/* ================================
+   LIGHTWEIGHT QUERY VECTOR
+   (hash-based fallback embedding)
+================================ */
 
+function createQueryVector(text, dim = 384) {
+  const vector = new Array(dim).fill(0);
+  const words = text.toLowerCase().split(/\W+/);
+
+  for (const word of words) {
+    let hash = 0;
+    for (let i = 0; i < word.length; i++) {
+      hash = (hash << 5) - hash + word.charCodeAt(i);
+      hash |= 0;
+    }
+
+    const index = Math.abs(hash) % dim;
+    vector[index] += 1;
+  }
+
+  const norm = Math.sqrt(vector.reduce((s, v) => s + v * v, 0));
+
+  return vector.map(v => v / (norm || 1));
 }
 
-/* =================================
-   QUESTION EMBEDDING (CACHED)
-================================= */
-
-async function embedQuestion(q){
-
-if(embeddingCache.has(q))
-return embeddingCache.get(q);
-
-const model = await getEmbedder();
-
-const emb = await model(q,{
-pooling:"mean",
-normalize:true
-});
-
-embeddingCache.set(q,emb.data);
-
-return emb.data;
-
-}
-
-/* =================================
+/* ================================
    SEMANTIC SEARCH
-================================= */
+================================ */
 
-async function semanticSearch(question){
+function semanticSearch(question) {
 
-const qVector = await embedQuestion(question);
+  const qVector = createQueryVector(question);
 
-const results=[];
+  const results = [];
 
-for(const item of vectorIndex){
+  for (const item of vectorIndex) {
 
-const score=cosineSimilarity(qVector,item.vector);
+    const score = cosineSimilarity(qVector, item.vector);
 
-if(score>0.40){
-results.push({id:item.id,score});
+    if (score > 0.35) {
+      results.push({
+        id: item.id,
+        score
+      });
+    }
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  return results.slice(0, 4);
 }
 
-}
-
-results.sort((a,b)=>b.score-a.score);
-
-return results.slice(0,4);
-
-}
-
-/* =================================
+/* ================================
    ARTICLE CONTEXT
-================================= */
+================================ */
 
-function retrieveArticles(matches){
+function retrieveArticles(matches) {
 
-let ctx="";
+  let ctx = "";
 
-for(const m of matches){
+  for (const m of matches) {
 
-const article=articleMap.get(m.id);
+    const article = articleMap.get(m.id);
 
-if(!article) continue;
+    if (!article) continue;
 
-const clean=article.content
-.replace(/<[^>]+>/g,"")
-.replace(/\s+/g," ")
-.trim();
+    const clean = article.content
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-ctx+=`
+    ctx += `
 TITLE: ${article.title}
 
 CONTENT:
-${clean.slice(0,800)}
+${clean.slice(0, 800)}
 
 SIMILARITY: ${m.score.toFixed(3)}
 
 ---
 `;
+  }
 
+  return ctx;
 }
 
-return ctx;
+/* ================================
+   WIKIPEDIA SEARCH
+================================ */
 
+async function wikiSearch(query) {
+
+  try {
+
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
+    );
+
+    if (!res.ok) return "";
+
+    const data = await res.json();
+
+    return data.extract
+      ? `WIKIPEDIA:\n${data.extract.slice(0, 600)}`
+      : "";
+
+  } catch {
+    return "";
+  }
 }
 
-/* =================================
-   WIKIPEDIA
-================================= */
+/* ================================
+   DUCKDUCKGO SEARCH
+================================ */
 
-async function wikiSearch(query){
+async function duckSearch(query) {
 
-try{
+  try {
 
-const res=await fetch(
-`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
-);
+    const controller = new AbortController();
 
-if(!res.ok) return "";
+    const timeout = setTimeout(() => controller.abort(), 3500);
 
-const data=await res.json();
+    const res = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`,
+      { signal: controller.signal }
+    );
 
-return data.extract
-? `WIKIPEDIA:\n${data.extract.slice(0,600)}`
-: "";
+    clearTimeout(timeout);
 
-}catch{
-return "";
+    if (!res.ok) return "";
+
+    const data = await res.json();
+
+    let text = "";
+
+    if (data.Abstract) text += data.Abstract + "\n";
+
+    if (data.RelatedTopics) {
+
+      for (const t of data.RelatedTopics.slice(0, 3)) {
+        if (t.Text) text += t.Text + "\n";
+      }
+    }
+
+    return text.slice(0, 500);
+
+  } catch {
+    return "";
+  }
 }
 
-}
-
-/* =================================
-   DUCKDUCKGO
-================================= */
-
-async function duckSearch(query){
-
-try{
-
-const controller=new AbortController();
-const timeout=setTimeout(()=>controller.abort(),3500);
-
-const res=await fetch(
-`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`,
-{signal:controller.signal}
-);
-
-clearTimeout(timeout);
-
-if(!res.ok) return "";
-
-const data=await res.json();
-
-let text="";
-
-if(data.Abstract) text+=data.Abstract+"\n";
-
-if(data.RelatedTopics){
-
-for(const t of data.RelatedTopics.slice(0,3)){
-if(t.Text) text+=t.Text+"\n";
-}
-
-}
-
-return text.slice(0,500);
-
-}catch{
-return "";
-}
-
-}
-
-/* =================================
+/* ================================
    DOMAIN DETECTION
-================================= */
+================================ */
 
-function detectDomain(q){
+function detectDomain(q) {
 
-if(/student|education|school/i.test(q))
-return "education";
+  if (/student|education|school/i.test(q))
+    return "education";
 
-if(/job|employment|work/i.test(q))
-return "employment";
+  if (/job|employment|work/i.test(q))
+    return "employment";
 
-if(/hospital|health|medical/i.test(q))
-return "healthcare";
+  if (/hospital|health|medical/i.test(q))
+    return "healthcare";
 
-if(/assistive|technology|device/i.test(q))
-return "assistive_technology";
+  if (/assistive|technology|device/i.test(q))
+    return "assistive_technology";
 
-return "legal";
-
+  return "legal";
 }
 
-/* =================================
+/* ================================
    PROMPT BUILDER
-================================= */
+================================ */
 
 function buildPrompt({
-question,
-rpwd,
-articles,
-datasets,
-wiki,
-web
-}){
+  question,
+  rpwd,
+  articles,
+  datasets,
+  wiki,
+  web
+}) {
 
-return `
+  return `
 You are EqualEdge AI.
 
 You specialize in:
-
 • Disability rights
 • Accessibility law
 • Inclusive education
@@ -280,168 +249,146 @@ Avoid speculation.
 `;
 }
 
-/* =================================
-   WORKER
-================================= */
+/* ================================
+   WORKER HANDLER
+================================ */
 
 export default {
 
-async fetch(request,env){
+  async fetch(request, env) {
 
-const cors={
-"Access-Control-Allow-Origin":"*",
-"Access-Control-Allow-Headers":"Content-Type",
-"Access-Control-Allow-Methods":"POST, OPTIONS"
-};
+    const cors = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS"
+    };
 
-const headers={...cors,"Content-Type":"application/json"};
+    const headers = { ...cors, "Content-Type": "application/json" };
 
-const url=new URL(request.url);
+    const url = new URL(request.url);
 
-/* CORS */
+    if (request.method === "OPTIONS")
+      return new Response(null, { headers: cors });
 
-if(request.method==="OPTIONS")
-return new Response(null,{headers:cors});
+    if (url.pathname !== "/ask")
+      return new Response(
+        JSON.stringify({
+          status: "EqualEdge AI running",
+          endpoint: "/ask"
+        }),
+        { headers }
+      );
 
-/* HEALTH */
+    if (request.method !== "POST")
+      return new Response(
+        JSON.stringify({ error: "Method not allowed" }),
+        { status: 405, headers }
+      );
 
-if(url.pathname!=="/ask")
-return new Response(
-JSON.stringify({
-status:"EqualEdge AI running",
-endpoint:"/ask"
-}),
-{headers}
-);
+    try {
 
-/* METHOD */
+      let question;
 
-if(request.method!=="POST")
-return new Response(
-JSON.stringify({error:"Method not allowed"}),
-{status:405,headers}
-);
+      const raw = await request.text();
 
-try{
+      try {
+        question = JSON.parse(raw).question;
+      } catch {
+        const params = new URLSearchParams(raw);
+        question = params.get("question");
+      }
 
-/* BODY */
+      if (!question)
+        return new Response(
+          JSON.stringify({ error: "Question required" }),
+          { status: 400, headers }
+        );
 
-let question;
+      question = question.trim();
 
-const raw=await request.text();
+      const matches = semanticSearch(question);
 
-try{
-question=JSON.parse(raw).question;
-}catch{
-const params=new URLSearchParams(raw);
-question=params.get("question");
-}
+      const articleContext = retrieveArticles(matches);
 
-if(!question)
-return new Response(
-JSON.stringify({error:"Question required"}),
-{status:400,headers}
-);
+      const q = question.toLowerCase();
 
-question=question.trim();
+      const domain = detectDomain(q);
 
-/* PARALLEL CONTEXT FETCH */
+      const relevantSections = rpwdSections
+        .filter(s => (s.keywords || [])
+        .some(k => q.includes(k.toLowerCase())))
+        .slice(0, 3)
+        .map(s => `${s.section} - ${s.title}\n${s.content}`)
+        .join("\n\n");
 
-const matches = await semanticSearch(question);
+      const datasets = router
+        .filter(d => d.domain === domain)
+        .slice(0, 5);
 
-const articleContext = retrieveArticles(matches);
+      const datasetContext = datasets.map(d => d.file).join("\n");
 
-const q = question.toLowerCase();
+      const [wikiContext, webContext] = await Promise.all([
+        wikiSearch(question),
+        duckSearch(question)
+      ]);
 
-const domain = detectDomain(q);
+      const prompt = buildPrompt({
+        question,
+        rpwd: relevantSections,
+        articles: articleContext,
+        datasets: datasetContext,
+        wiki: wikiContext,
+        web: webContext
+      });
 
-/* RPWD */
+      const controller = new AbortController();
 
-const relevantSections = rpwdSections
-.filter(s=>(s.keywords||[])
-.some(k=>q.includes(k.toLowerCase())))
-.slice(0,3)
-.map(s=>`${s.section} - ${s.title}\n${s.content}`)
-.join("\n\n");
+      setTimeout(() => controller.abort(), 15000);
 
-/* DATASETS */
+      const aiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 800
+            }
+          })
+        }
+      );
 
-const datasets = router
-.filter(d=>d.domain===domain)
-.slice(0,5);
+      if (!aiRes.ok)
+        throw new Error("AI service error");
 
-const datasetContext = datasets.map(d=>d.file).join("\n");
+      const data = await aiRes.json();
 
-/* PARALLEL EXTERNAL SEARCH */
+      const answer =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text
+        || "No answer generated";
 
-const [wikiContext,webContext] = await Promise.all([
-wikiSearch(question),
-duckSearch(question)
-]);
+      return new Response(
+        JSON.stringify({
+          answer,
+          domain,
+          semantic_matches: matches.length,
+          web_context_used: !!webContext
+        }),
+        { headers }
+      );
 
-/* PROMPT */
+    } catch (err) {
 
-const prompt = buildPrompt({
-question,
-rpwd:relevantSections,
-articles:articleContext,
-datasets:datasetContext,
-wiki:wikiContext,
-web:webContext
-});
-
-/* GEMINI */
-
-const controller=new AbortController();
-setTimeout(()=>controller.abort(),15000);
-
-const aiRes=await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
-{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-signal:controller.signal,
-body:JSON.stringify({
-contents:[{parts:[{text:prompt}]}],
-generationConfig:{
-temperature:0.2,
-maxOutputTokens:800
-}
-})
-}
-);
-
-if(!aiRes.ok)
-throw new Error("AI service error");
-
-const data=await aiRes.json();
-
-const answer=
-data?.candidates?.[0]?.content?.parts?.[0]?.text
-||"No answer generated";
-
-return new Response(
-JSON.stringify({
-answer,
-domain,
-semantic_matches:matches.length,
-web_context_used:!!webContext
-}),
-{headers}
-);
-
-}catch(err){
-
-return new Response(
-JSON.stringify({
-error:"Server error",
-details:err.message
-}),
-{status:500,headers}
-);
-
-}
-
-}
-
+      return new Response(
+        JSON.stringify({
+          error: "Server error",
+          details: err.message
+        }),
+        { status: 500, headers }
+      );
+    }
+  }
 };

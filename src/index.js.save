@@ -1,0 +1,384 @@
+import vectorIndex from "../vector_index.json";
+import posts from "../posts_clean.json";
+import router from "./dataset_router.json";
+import rpwdSections from "./rpwd_sections.json";
+import embeddings from "../embeddings.json";
+import { pipeline } from "@xenova/transformers";
+
+/* ========================= */
+/* GLOBAL EMBEDDING MODEL */
+/* ========================= */
+
+let embedder;
+
+async function getEmbedder() {
+  if (!embedder) {
+    embedder = await pipeline(
+      "feature-extraction",
+      "Xenova/all-MiniLM-L6-v2"
+    );
+  }
+  return embedder;
+}
+
+/* ========================= */
+/* COSINE SIMILARITY */
+/* ========================= */
+
+function cosineSimilarity(a, b) {
+
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/* ========================= */
+/* SEMANTIC SEARCH */
+/* ========================= */
+
+async function semanticSearch(question) {
+
+  const model = await getEmbedder();
+
+  const qEmbedding = await model(question, {
+    pooling: "mean",
+    normalize: true
+  });
+
+  const qVector = qEmbedding.data;
+
+  const scored = embeddings.map(e => ({
+    id: e.id,
+    score: cosineSimilarity(qVector, e.vector)
+  }));
+
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, 4);
+}
+
+/* ========================= */
+/* ARTICLE RETRIEVAL */
+/* ========================= */
+
+function retrieveArticles(matches) {
+
+  let context = "";
+
+  for (const m of matches) {
+
+    const article = posts.find(p => p.id === m.id);
+
+    if (!article) continue;
+
+    context += `
+TITLE: ${article.title}
+
+CONTENT:
+${article.content.slice(0, 1200)}
+
+SIMILARITY: ${m.score.toFixed(3)}
+
+---
+`;
+  }
+
+  return context;
+}
+
+/* ========================= */
+/* DUCKDUCKGO SEARCH */
+/* ========================= */
+
+async function duckSearch(query) {
+
+  try {
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`,
+      { signal: controller.signal }
+    );
+
+    clearTimeout(timeout);
+
+    if (!res.ok) return "";
+
+    const data = await res.json();
+
+    let text = "";
+
+    if (data.Abstract) text += data.Abstract + "\n";
+
+    if (data.RelatedTopics) {
+
+      for (const t of data.RelatedTopics.slice(0, 3)) {
+        if (t.Text) text += t.Text + "\n";
+      }
+
+    }
+
+    return text.slice(0, 1000);
+
+  } catch {
+    return "";
+  }
+
+}
+
+/* ========================= */
+/* DOMAIN DETECTION */
+/* ========================= */
+
+function detectDomain(q) {
+
+  if (q.includes("education") || q.includes("student")) return "education";
+
+  if (q.includes("job") || q.includes("employment")) return "employment";
+
+  if (q.includes("hospital") || q.includes("health")) return "healthcare";
+
+  if (q.includes("assistive") || q.includes("technology")) return "assistive_technology";
+
+  return "legal";
+}
+
+/* ========================= */
+/* MAIN WORKER */
+/* ========================= */
+
+export default {
+
+async fetch(request, env) {
+
+const cors = {
+"Access-Control-Allow-Origin": "*",
+"Access-Control-Allow-Headers": "Content-Type",
+"Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+const headers = { ...cors, "Content-Type": "application/json" };
+
+const url = new URL(request.url);
+
+/* ========================= */
+/* CORS */
+/* ========================= */
+
+if (request.method === "OPTIONS") {
+return new Response(null, { headers: cors });
+}
+
+/* ========================= */
+/* HEALTH CHECK */
+/* ========================= */
+
+if (url.pathname !== "/ask") {
+
+return new Response(
+JSON.stringify({
+status: "EqualEdge AI running",
+endpoint: "/ask"
+}),
+{ headers }
+);
+
+}
+
+/* ========================= */
+/* METHOD VALIDATION */
+/* ========================= */
+
+if (request.method !== "POST") {
+
+return new Response(
+JSON.stringify({ error: "Method not allowed" }),
+{ status: 405, headers }
+);
+
+}
+
+try {
+
+/* ========================= */
+/* BODY PARSE */
+/* ========================= */
+
+let question = null;
+
+const raw = await request.text();
+
+if (raw) {
+
+try {
+question = JSON.parse(raw).question;
+}
+catch {
+const params = new URLSearchParams(raw);
+question = params.get("question");
+}
+
+}
+
+if (!question)
+return new Response(
+JSON.stringify({ error: "Question required" }),
+{ status: 400, headers }
+);
+
+question = question.trim();
+
+if (question.length < 3)
+return new Response(
+JSON.stringify({ error: "Question too short" }),
+{ status: 400, headers }
+);
+
+/* ========================= */
+/* SEMANTIC SEARCH */
+/* ========================= */
+
+const matches = await semanticSearch(question);
+
+const articleContext = retrieveArticles(matches);
+
+/* ========================= */
+/* DOMAIN */
+/* ========================= */
+
+const q = question.toLowerCase();
+
+const domain = detectDomain(q);
+
+/* ========================= */
+/* RPWD LAW */
+/* ========================= */
+
+const relevantSections = rpwdSections
+.filter(section =>
+(section.keywords || []).some(k =>
+q.includes(k.toLowerCase())
+))
+.slice(0, 3)
+.map(s => `${s.section} - ${s.title}\n${s.content}`)
+.join("\n\n");
+
+/* ========================= */
+/* DATASETS */
+/* ========================= */
+
+const datasets = router
+.filter(d => d.domain === domain)
+.slice(0, 5);
+
+const datasetContext = datasets.map(d => d.file).join("\n");
+
+/* ========================= */
+/* WEB CONTEXT */
+/* ========================= */
+
+const webContext = await duckSearch(question);
+
+/* ========================= */
+/* PROMPT */
+/* ========================= */
+
+const prompt = `
+You are EqualEdge AI.
+
+Explain disability law, accessibility,
+assistive technology, inclusive education
+and disability schemes in India.
+
+RPwD Act references:
+${relevantSections}
+
+Relevant articles:
+${articleContext}
+
+Dataset references:
+${datasetContext}
+
+External context:
+${webContext}
+
+Question:
+${question}
+
+Provide a factual answer.
+Reference RPwD sections when relevant.
+Avoid speculation.
+`;
+
+/* ========================= */
+/* GEMINI */
+/* ========================= */
+
+const aiRes = await fetch(
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
+{
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+contents: [{ parts: [{ text: prompt }] }],
+generationConfig: {
+temperature: 0.2,
+maxOutputTokens: 800
+}
+})
+}
+);
+
+if (!aiRes.ok)
+return new Response(
+JSON.stringify({ error: "AI service error" }),
+{ status: 500, headers }
+);
+
+const data = await aiRes.json();
+
+const answer =
+data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+"No answer generated";
+
+/* ========================= */
+/* RESPONSE */
+/* ========================= */
+
+return new Response(
+JSON.stringify({
+answer,
+domain,
+semantic_matches: matches.length,
+web_context_used: !!webContext
+}),
+{ headers }
+);
+
+}
+
+catch (err) {
+
+return new Response(
+JSON.stringify({
+error: "Server error",
+details: err.message
+}),
+{ status: 500, headers }
+);
+
+}
+
+}
+
+};

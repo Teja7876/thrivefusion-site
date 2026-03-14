@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>EqualEdge AI | ThriveFusion</title>
+
+<meta name="description" content="EqualEdge AI answers questions about disability rights, accessibility standards, assistive technology and inclusive education.">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+body{
+font-family:Arial, sans-serif;
+margin:0;
+background:#f7f7f7;
+}
+
+.ai-page{
+max-width:900px;
+margin:40px auto;
+padding:20px;
+}
+
+.chat-container{
+border:1px solid #ddd;
+border-radius:8px;
+background:#fff;
+padding:20px;
+min-height:400px;
+overflow-y:auto;
+}
+
+.message{
+margin-bottom:18px;
+padding:12px 14px;
+border-radius:6px;
+max-width:80%;
+white-space:pre-wrap;
+}
+
+.user{
+background:#e9f1ff;
+margin-left:auto;
+}
+
+.ai{
+background:#f5f5f5;
+}
+
+.chat-input{
+margin-top:20px;
+display:flex;
+gap:10px;
+}
+
+.chat-input textarea{
+flex:1;
+padding:12px;
+border:1px solid #ccc;
+border-radius:6px;
+resize:none;
+height:70px;
+font-size:15px;
+}
+
+.chat-input button{
+padding:12px 20px;
+background:#0b3d91;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+.chat-input button:disabled{
+opacity:.6;
+cursor:not-allowed;
+}
+
+.sources{
+margin-top:6px;
+font-size:13px;
+color:#666;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header class="header">
+
+<nav class="nav">
+
+<div class="logo">
+<a href="index.html">ThriveFusion</a>
+</div>
+
+<ul class="nav-links">
+<li><a href="index.html">Home</a></li>
+<li><a href="blog.html">Blog</a></li>
+</ul>
+
+</nav>
+
+</header>
+
+<main class="ai-page">
+
+<h1>EqualEdge AI Assistant</h1>
+
+<p>
+Ask questions about disability rights, RPwD Act 2016,
+accessibility standards, inclusive education and assistive technology.
+</p>
+
+<div
+id="chat"
+class="chat-container"
+role="log"
+aria-live="polite"
+aria-label="AI conversation"
+></div>
+
+<div class="chat-input">
+
+<textarea
+id="question"
+placeholder="Ask a question about disability rights or accessibility..."
+aria-label="Ask a question"
+></textarea>
+
+<button id="askBtn">
+Ask
+</button>
+
+</div>
+
+</main>
+
+<footer class="footer">
+
+<p>© 2026 ThriveFusion Alliance Foundation</p>
+
+</footer>
+
+
+<!-- ACCESSIBILITY TOOLBAR CONTAINER -->
+<div id="accessibility-widget"></div>
+
+
+<script>
+
+const API_URL =
+"https://equaledge-ai.equaledge1ai.workers.dev/ask"
+
+const chat = document.getElementById("chat")
+const questionBox = document.getElementById("question")
+const askBtn = document.getElementById("askBtn")
+
+askBtn.addEventListener("click", askAI)
+
+questionBox.addEventListener("keydown", e=>{
+if(e.key==="Enter" && !e.shiftKey){
+e.preventDefault()
+askAI()
+}
+})
+
+function addMessage(text,role){
+
+const msg=document.createElement("div")
+msg.className="message "+role
+msg.innerText=text
+
+chat.appendChild(msg)
+chat.scrollTop=chat.scrollHeight
+
+return msg
+}
+
+async function askAI(){
+
+const question=questionBox.value.trim()
+
+if(!question) return
+
+addMessage(question,"user")
+
+questionBox.value=""
+
+askBtn.disabled=true
+
+const thinking=addMessage("Thinking...","ai")
+
+try{
+
+const res=await fetch(API_URL,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({question})
+})
+
+if(!res.ok){
+throw new Error("API error")
+}
+
+const data=await res.json()
+
+thinking.innerText=data.answer || "No answer returned."
+
+if(data.matches){
+const meta=document.createElement("div")
+meta.className="sources"
+meta.innerText="Sources found: "+data.matches
+thinking.appendChild(meta)
+}
+
+}catch(err){
+
+thinking.innerText="AI request failed. Please try again."
+
+}
+
+askBtn.disabled=false
+
+}
+
+</script>
+
+
+<!-- ACCESSIBILITY TOOLBAR SCRIPT -->
+<script src="assets/js/widget.min.js"></script>
+
+</body>
+</html>

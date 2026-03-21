@@ -1,417 +1,152 @@
-import vectorIndex from "../vector_index.json";
-import posts from "../posts_clean.json";
-import router from "./dataset_router.json";
-import rpwdSections from "./rpwd_sections.json";
+const MODEL = "@cf/meta/llama-3-8b-instruct"
 
-/* =========================
-GLOBAL CACHES
-========================= */
-
-const articleMap = new Map();
-for (const p of posts) articleMap.set(p.id, p);
-
-const embeddingCache = new Map();
-
-/* =========================
-COSINE SIMILARITY
-========================= */
-
-function cosineSimilarity(a,b){
-let dot=0,normA=0,normB=0;
-
-for(let i=0;i<a.length;i++){
-dot+=a[i]*b[i];
-normA+=a[i]*a[i];
-normB+=b[i]*b[i];
+// CLEAN
+function clean(text){
+  return text.replace(/\s+/g," ").trim()
 }
 
-return dot/(Math.sqrt(normA)*Math.sqrt(normB));
+// 🔥 BALANCED EXTRACTION
+function extractRelevant(query, text){
+  const sentences = text.split(". ")
+
+  let filtered = sentences.filter(s=>{
+    const t = s.toLowerCase()
+
+    return (
+      t.includes("act") ||
+      t.includes("disabilities") ||
+      t.includes("rights") ||
+      t.match(/\b\d+\b/)
+    )
+  })
+
+  // fallback if too strict
+  if(filtered.length < 3){
+    filtered = sentences.slice(0,6)
+  }
+
+  return filtered.slice(0,6).join(". ")
 }
 
-/* =========================
-NORMALIZE QUERY
-========================= */
+// FETCH
+async function fetchPage(url){
+  try{
+    const res = await fetch(url,{headers:{ "User-Agent":"Mozilla/5.0"}})
+    const html = await res.text()
 
-function normalizeQuery(q){
-return q
-.toLowerCase()
-.replace(/[^\w\s]/g,"")
-.replace(/\s+/g," ")
-.trim();
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi,"")
+      .replace(/<style[\s\S]*?<\/style>/gi,"")
+      .replace(/<[^>]+>/g," ")
+
+    return clean(text)
+
+  }catch{
+    return ""
+  }
 }
 
-/* =========================
-QUERY REWRITE
-========================= */
+// SEARCH
+async function webSearch(query){
 
-async function rewriteQuery(question,env){
+  const searchQuery = query + " site:gov.in OR site:nic.in OR site:org"
 
-const prompt=`Rewrite the user question into a short search query.
+  const html = await (await fetch(
+    "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(searchQuery)
+  )).text()
+
+  const results=[]
+  const regex=/class="result__a" href="(.*?)">(.*?)<\/a>/g
+
+  let match
+
+  while((match=regex.exec(html))!==null){
+
+    let link = decodeURIComponent(match[1].split("uddg=")[1] || "")
+
+    if(!link.startsWith("http")) continue
+    if(link.endsWith(".pdf")) continue
+
+    const page = await fetchPage(link)
+    const snippet = extractRelevant(query, page).slice(0,1500)
+
+    if(snippet.length > 80){
+      results.push({
+        url: link,
+        content: snippet
+      })
+    }
+
+    if(results.length >= 2) break
+  }
+
+  return results
+}
+
+// AI (STRICT BUT SAFE)
+async function askAI(query, sources, env){
+
+  const context = sources.map((s,i)=>`[${i+1}] ${s.content}`).join("\n")
+
+  const prompt = `
+Use ONLY the sources.
+
+Do NOT add external info.
+If unsure, skip.
 
 Question:
-${question}
+${query}
 
-Return only the rewritten query.`
+Sources:
+${context}
 
-const res=await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
-{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-contents:[{parts:[{text:prompt}]}],
-generationConfig:{temperature:0.1,maxOutputTokens:40}
-})
-}
-)
-
-const data=await res.json()
-
-return data?.candidates?.[0]?.content?.parts?.[0]?.text || question
-}
-
-/* =========================
-ENTITY EXTRACTION
-========================= */
-
-function extractEntities(text){
-
-const entities=[]
-
-if(/rpwd|disabilities act/i.test(text))
-entities.push("RPwD")
-
-if(/reservation/i.test(text))
-entities.push("reservation")
-
-if(/employment|job/i.test(text))
-entities.push("employment")
-
-if(/education|student/i.test(text))
-entities.push("education")
-
-if(/assistive/i.test(text))
-entities.push("assistive")
-
-return entities
-}
-
-/* =========================
-GEMINI EMBEDDING
-========================= */
-
-async function embedQuery(question,env){
-
-if(embeddingCache.has(question))
-return embeddingCache.get(question)
-
-const res=await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key=${env.GEMINI_API}`,
-{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-content:{parts:[{text:question}]}
-})
-}
-)
-
-const data=await res.json()
-
-const vector=data?.embedding?.values
-
-if(!vector)
-throw new Error("Embedding failed")
-
-embeddingCache.set(question,vector)
-
-return vector
-}
-
-/* =========================
-SEMANTIC SEARCH
-========================= */
-
-async function semanticSearch(query,env){
-
-const qVector=await embedQuery(query,env)
-
-const results=[]
-
-for(const item of vectorIndex){
-
-const score=cosineSimilarity(qVector,item.vector)
-
-if(score > 0.20)
-results.push({
-article_id:item.article_id || item.id,
-score
-})
-
-}
-
-results.sort((a,b)=>b.score-a.score)
-
-return results
-}
-
-/* =========================
-ADAPTIVE RETRIEVAL
-========================= */
-
-function adaptiveRetrieve(results){
-
-if(results.length===0) return []
-
-if(results[0].score>0.75)
-return results.slice(0,3)
-
-if(results[0].score>0.55)
-return results.slice(0,5)
-
-return results.slice(0,7)
-}
-
-/* =========================
-ARTICLE CONTEXT
-========================= */
-
-function retrieveArticles(matches){
-
-let ctx=""
-const sources=[]
-
-for(const m of matches){
-
-const article = articleMap.get(m.article_id)
-if(!article) continue
-
-const clean=article.content
-.replace(/<[^>]+>/g," ")
-.replace(/\s+/g," ")
-.trim()
-
-ctx+=`
-TITLE: ${article.title}
-
-CONTENT:
-${clean.slice(0,700)}
-
-SOURCE:${article.id}
-SIMILARITY:${m.score.toFixed(3)}
-
----
+Answer:
+- short explanation
+- bullet points
 `
 
-sources.push({
-id:article.id,
-title:article.title,
-score:m.score
-})
+  const res = await env.AI.run(MODEL,{
+    prompt,
+    max_tokens:200
+  })
 
+  return (res.response || "").trim()
 }
 
-return {ctx,sources}
-}
-
-/* =========================
-WIKIPEDIA
-========================= */
-
-async function wikiSearch(query){
-
-try{
-
-const res=await fetch(
-`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`
-)
-
-if(!res.ok) return ""
-
-const data=await res.json()
-
-return data.extract?.slice(0,500) || ""
-
-}catch{
-return ""
-}
-
-}
-
-/* =========================
-DUCKDUCKGO SEARCH
-========================= */
-
-async function duckSearch(query){
-
-try{
-
-const res = await fetch(
-`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`
-)
-
-if(!res.ok) return ""
-
-const data = await res.json()
-
-let text=""
-
-if(data.Abstract)
-text+=data.Abstract+"\n"
-
-if(data.RelatedTopics){
-
-for(const t of data.RelatedTopics.slice(0,3)){
-if(t.Text) text+=t.Text+"\n"
-}
-
-}
-
-return text.slice(0,500)
-
-}catch{
-return ""
-}
-
-}
-
-/* =========================
-PROMPT BUILDER
-========================= */
-
-function buildPrompt(data){
-
-return `You are EqualEdge AI, a factual assistant specialized in disability rights and accessibility in India.
-
-Your knowledge sources include:
-- Rights of Persons with Disabilities Act 2016
-- Accessibility law
-- Inclusive education policy
-- Assistive technology
-
-User Question:
-${data.question}
-
-RPwD Legal Context:
-${data.rpwd}
-
-Relevant Articles:
-${data.articles}
-
-Wikipedia Context:
-${data.wiki}
-
-Web Search Context:
-${data.web}
-
-Instructions:
-Use the provided context to answer the question clearly and accurately.
-If relevant, cite RPwD Act sections or article titles.
-Avoid speculation.`
-}
-
-/* =========================
-WORKER HANDLER
-========================= */
-
+// MAIN
 export default {
+  async fetch(req, env){
 
-async fetch(request,env){
+    const url = new URL(req.url)
 
-const cors={
-"Access-Control-Allow-Origin":"*",
-"Access-Control-Allow-Headers":"Content-Type",
-"Access-Control-Allow-Methods":"POST, OPTIONS"
-}
+    if(url.pathname === "/search"){
 
-const headers={...cors,"Content-Type":"application/json"}
+      const q = url.searchParams.get("q")
+      if(!q){
+        return new Response(JSON.stringify({error:"query required"}),{status:400})
+      }
 
-const url=new URL(request.url)
+      const sources = await webSearch(q)
 
-if(request.method==="OPTIONS")
-return new Response(null,{headers:cors})
+      if(sources.length === 0){
+        return new Response(JSON.stringify({
+          success:true,
+          answer:"No reliable source found",
+          sources:[]
+        }))
+      }
 
-if(url.pathname!=="/ask")
-return new Response(JSON.stringify({status:"EqualEdge AI running"}),{headers})
+      const answer = await askAI(q, sources, env)
 
-if(request.method!=="POST")
-return new Response(JSON.stringify({error:"Method not allowed"}),{status:405,headers})
+      return new Response(JSON.stringify({
+        success:true,
+        answer,
+        sources: sources.map((s,i)=>({id:i+1,url:s.url}))
+      }),{
+        headers:{ "Content-Type":"application/json" }
+      })
+    }
 
-try{
-
-const {question}=await request.json()
-
-if(!question)
-return new Response(JSON.stringify({error:"Question required"}),{status:400,headers})
-
-const normalized=normalizeQuery(question)
-
-const rewritten=await rewriteQuery(normalized,env)
-
-const entities=extractEntities(rewritten)
-
-const rawMatches=await semanticSearch(rewritten,env)
-
-const matches=adaptiveRetrieve(rawMatches)
-
-const {ctx,sources}=retrieveArticles(matches)
-
-const rpwd=rpwdSections
-.filter(s=>entities.some(e=>s.keywords?.includes(e)))
-.slice(0,3)
-.map(s=>`${s.section} ${s.title}\n${s.content}`)
-.join("\n\n")
-
-const [wiki,web]=await Promise.all([
-wikiSearch(rewritten),
-duckSearch(rewritten)
-])
-
-const prompt=buildPrompt({
-question:rewritten,
-entities,
-rpwd,
-articles:ctx,
-wiki,
-web
-})
-
-const aiRes=await fetch(
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API}`,
-{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-contents:[{parts:[{text:prompt}]}],
-generationConfig:{
-temperature:0.2,
-maxOutputTokens:800
-}
-})
-}
-)
-
-const data=await aiRes.json()
-
-const answer=
-data?.candidates?.[0]?.content?.parts?.[0]?.text
-||"No answer generated"
-
-return new Response(JSON.stringify({
-answer,
-sources,
-semantic_matches:matches.length
-}),{headers})
-
-}catch(err){
-
-return new Response(JSON.stringify({
-error:"Server error",
-details:err.message
-}),{status:500,headers})
-
-}
-
-}
-
+    return new Response("ok")
+  }
 }

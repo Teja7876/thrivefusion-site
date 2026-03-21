@@ -1,0 +1,3 @@
+
+export CLOUDFLARE_EMAIL=maskamsaiteja.fellow@gmail.com
+export CLOUDFLARE_API_KEY=cfk_pqh8jNdvq32egTfc6SxNnIqTKXCgPsFrKkes7C8N47859082

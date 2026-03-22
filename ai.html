@@ -1,160 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accessibility AI Assistant | ThriveFusion</title>
-<link rel="stylesheet" href="css/style.css">
-</head>
-
-<body>
-
-<a href="#main-content" class="skip-link">Skip to main content</a>
-
-<header class="header">
-<nav class="nav">
-<div class="logo"><a href="index.html">ThriveFusion</a></div>
-<ul class="nav-links">
-<li><a href="index.html">Home</a></li>
-<li><a href="blog.html">Research</a></li>
-<li><a href="accessibility.html">Accessibility</a></li>
-</ul>
-</nav>
-</header>
-
-<main id="main-content" class="ai-section">
-
-<h1>Accessibility AI Assistant</h1>
-<p>Ask questions about disability rights, accessibility and assistive technology.</p>
-
-<div class="chat-box">
-
-<div id="chat-messages" role="log" aria-live="polite"></div>
-
-<div class="chat-input">
-<input 
-id="question" 
-type="text" 
-placeholder="Ask about accessibility, disability law, WCAG..." 
-aria-label="Ask a question"
-/>
-<button id="ask">Ask</button>
-</div>
-
-</div>
-
-<div class="suggestions">
-<button class="suggestion">What is RPwD Act 2016?</button>
-<button class="suggestion">Explain WCAG guidelines</button>
-<button class="suggestion">Best screen readers</button>
-<button class="suggestion">Inclusive education strategies</button>
-</div>
-
-</main>
-
-<footer class="footer">
-<p>© 2026 ThriveFusion</p>
-</footer>
-
-<script>
+<script id="fix-ai-ui">
 const askBtn = document.getElementById("ask")
 const input = document.getElementById("question")
 const chat = document.getElementById("chat-messages")
 
-const API_URL = "https://equaledge-ai.equaledge1ai.workers.dev/ask"
+const API_URL = "https://equaledge-ai.equaledge1ai.workers.dev"
 
 function addMessage(text, type="ai"){
-const div = document.createElement("div")
-div.className = "message " + type
-div.textContent = text
-chat.appendChild(div)
-chat.scrollTop = chat.scrollHeight
-}
-
-function addFormattedMessage(text){
-const div = document.createElement("div")
-div.className = "message ai"
-
-const formatted = text
-.replace(/\n/g,"<br>")
-.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
-
-div.innerHTML = formatted
-chat.appendChild(div)
-chat.scrollTop = chat.scrollHeight
+  const div = document.createElement("div")
+  div.className = "message " + type
+  div.textContent = text
+  chat.appendChild(div)
+  chat.scrollTop = chat.scrollHeight
 }
 
 async function askAI(question){
 
-addMessage(question,"user")
+  addMessage(question,"user")
 
-const loading = document.createElement("div")
-loading.className = "message ai"
-loading.textContent = "Thinking..."
-chat.appendChild(loading)
+  const loading = document.createElement("div")
+  loading.className = "message ai"
+  loading.textContent = "Thinking..."
+  chat.appendChild(loading)
 
-try{
+  try{
 
-askBtn.disabled = true
+    askBtn.disabled = true
 
-const res = await fetch(API_URL,{
-method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({question})
-})
+    const res = await fetch(`${API_URL}?q=${encodeURIComponent(question)}`)
+    const data = await res.json()
 
-const data = await res.json()
+    loading.remove()
 
-loading.remove()
+    if(!data.success){
+      addMessage("AI failed. Try again.")
+      return
+    }
 
-if(!data.success){
-addMessage("AI failed. Try again.")
-return
-}
+    // ✅ FIX: handle array properly
+    const answerText = data.answer
+      .map(a => "• " + a.point)
+      .join("\n\n")
 
-addFormattedMessage(data.answer)
+    addMessage(answerText)
 
-if(data.sources && data.sources.length){
-const sourceBlock = document.createElement("div")
-sourceBlock.className = "message ai"
-let html = "<strong>Sources:</strong><ul>"
+    // ✅ FIX: correct sources
+    if(data.sources && data.sources.length){
+      const sourceBlock = document.createElement("div")
+      sourceBlock.className = "message ai"
 
-data.sources.slice(0,3).forEach(s=>{
-html += `<li>${s.title}</li>`
-})
+      let html = "<strong>Sources:</strong><ul>"
 
-html += "</ul>"
-sourceBlock.innerHTML = html
-chat.appendChild(sourceBlock)
-}
+      data.sources.slice(0,3).forEach(s=>{
+        html += `<li><a href="${s.url}" target="_blank">${s.url}</a></li>`
+      })
 
-}catch(err){
-loading.remove()
-addMessage("Connection error. Check API.")
-}finally{
-askBtn.disabled = false
-}
+      html += "</ul>"
+      sourceBlock.innerHTML = html
+      chat.appendChild(sourceBlock)
+    }
 
+  }catch(err){
+    loading.remove()
+    addMessage("Connection error. Check API.")
+  }finally{
+    askBtn.disabled = false
+  }
 }
 
 askBtn.addEventListener("click",()=>{
-const q = input.value.trim()
-if(!q) return
-askAI(q)
-input.value = ""
+  const q = input.value.trim()
+  if(!q) return
+  askAI(q)
+  input.value = ""
 })
 
 input.addEventListener("keypress",(e)=>{
-if(e.key==="Enter") askBtn.click()
+  if(e.key==="Enter") askBtn.click()
 })
 
 document.querySelectorAll(".suggestion").forEach(btn=>{
-btn.addEventListener("click",()=>{
-input.value = btn.textContent
-askBtn.click()
-})
+  btn.addEventListener("click",()=>{
+    input.value = btn.textContent
+    askBtn.click()
+  })
 })
 </script>
-
-</body>
-</html>

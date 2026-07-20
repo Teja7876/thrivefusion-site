@@ -25,7 +25,7 @@ const enquiryOptions = [
 const formSchema = z.object({
   type: z.enum(enquiryOptions),
   name: z.string().min(2, "Full name is required."),
-  email: z.string().email("Please enter a valid email address."),
+  email: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().optional(),
   subject: z.string().optional(),
   message: z.string().min(10, "Message must be at least 10 characters long."),
@@ -82,9 +82,11 @@ export function UnifiedContactForm({ defaultType = "General Contact" }: { defaul
     setIsSuccess(false);
 
     try {
-      const response = await fetch("/api/contact", {
+      const response = await fetch("/contact.php", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
 

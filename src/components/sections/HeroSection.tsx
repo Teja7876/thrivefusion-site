@@ -1,6 +1,6 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, Heart, ChevronDown } from "lucide-react";
+import Image from '@/components/ui/image';
+import Link from '@/components/ui/link';
+import { Heart, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 

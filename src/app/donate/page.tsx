@@ -1,16 +1,12 @@
-import type { Metadata } from "next";
-import Image from "next/image";
+
+import Image from '@/components/ui/image';
 import { CreditCard, HeartHandshake, ShieldCheck, FileText } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Donate | ThriveFusion Alliance Foundation",
-  description:
-    "Support ThriveFusion Alliance Foundation. Your tax-deductible donation empowers persons with disabilities through accessibility, education, and technology.",
-};
+
 
 const donationTiers = [
   { amount: "₹500", desc: "Provides learning materials for one student" },

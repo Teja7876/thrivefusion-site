@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
+
+import Image from '@/components/ui/image';
+import Link from '@/components/ui/link';
 import { ArrowRight, ExternalLink } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
@@ -9,11 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-export const metadata: Metadata = {
-  title: "Projects & Initiatives | ThriveFusion Alliance Foundation",
-  description:
-    "Discover our active programs, including BuddyHub, EqualEdge AI, and accessibility services driving impact across India.",
-};
+
 
 const statusConfig = {
   Active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",

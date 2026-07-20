@@ -1,14 +1,11 @@
-import Link from "next/link";
+import Link from '@/components/ui/link';
 import {
   Mail,
   Phone,
   MapPin,
-  Heart,
-  ExternalLink,
-} from "lucide-react";
+    } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
-import { Button } from "@/components/ui/button";
 
 // SVG Icons for socials
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -23,7 +20,6 @@ const LinkedinIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2.5 7.1C2.5 7.1 2.5 7 2.6 6.9c.2-.8.8-1.4 1.6-1.6C6.1 5 12 5 12 5s5.9 0 7.8.3c.8.2 1.4.8 1.6 1.6.1.1.1.2.1.3C22 9.1 22 12 22 12s0 2.9-.5 4.8c-.1.1-.1.2-.1.3-.2.8-.8 1.4-1.6 1.6-1.9.3-7.8.3-7.8.3s-5.9 0-7.8-.3c-.8-.2-1.4-.8-1.6-1.6-.1-.1-.1-.2-.1-.3C2 14.9 2 12 2 12s0-2.9.5-4.8z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z"/></svg>
 );
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 const aboutLinks = [

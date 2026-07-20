@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import Image from "next/image";
+
+import Image from '@/components/ui/image';
 import { Users, Globe, Zap } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
@@ -11,11 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-export const metadata: Metadata = {
-  title: "About Us | ThriveFusion Alliance Foundation",
-  description:
-    "Learn about our story, mission, and the passionate team driving digital accessibility and inclusion in India.",
-};
+
 
 export default function AboutPage() {
   return (

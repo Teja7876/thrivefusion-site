@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://thrivefusion.org/sitemap-index.xml

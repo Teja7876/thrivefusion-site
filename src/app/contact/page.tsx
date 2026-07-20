@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import Image from "next/image";
+
+import Image from '@/components/ui/image';
 import { Mail, Phone, MapPin } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
@@ -8,11 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UnifiedContactForm } from "@/components/forms/UnifiedContactForm";
 
-export const metadata: Metadata = {
-  title: "Contact Us | ThriveFusion Alliance Foundation",
-  description:
-    "Get in touch with ThriveFusion Alliance Foundation. We're here to answer your questions about accessibility, partnerships, and programs.",
-};
+
 
 export default function ContactPage() {
   return (

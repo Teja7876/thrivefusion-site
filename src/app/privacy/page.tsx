@@ -1,12 +1,9 @@
-import type { Metadata } from "next";
+
 
 import PageContainer from "@/components/layout/PageContainer";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy | ThriveFusion Alliance Foundation",
-  description: "Privacy Policy for ThriveFusion Alliance Foundation. Learn how we collect, use, and protect your data.",
-};
+
 
 export default function PrivacyPage() {
   const lastUpdated = "July 20, 2026";

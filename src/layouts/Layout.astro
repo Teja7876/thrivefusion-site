@@ -1,0 +1,73 @@
+---
+import { siteConfig } from "@/config/site";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { FocusManager } from "@/components/providers/FocusManager";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { ClientRouter } from 'astro:transitions';
+import "../styles/globals.css";
+
+export interface Props {
+	title?: string;
+	description?: string;
+}
+
+const { title, description } = Astro.props;
+const finalTitle = title ? `${title} | ${siteConfig.name}` : siteConfig.title;
+const finalDescription = description || siteConfig.description;
+---
+
+<!doctype html>
+<html lang="en" class="h-full antialiased font-sans">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content={finalDescription} />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --font-sans: 'Inter', sans-serif;
+      }
+    </style>
+
+    <!-- SEO -->
+		<title>{finalTitle}</title>
+    <link rel="canonical" href={siteConfig.url} />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:url" content={siteConfig.url} />
+    <meta property="og:title" content={finalTitle} />
+    <meta property="og:description" content={finalDescription} />
+    <meta property="og:site_name" content={siteConfig.name} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={finalTitle} />
+    <meta name="twitter:description" content={finalDescription} />
+    <meta name="author" content={siteConfig.name} />
+    
+    <ClientRouter />
+	</head>
+	<body class="flex min-h-screen flex-col bg-background text-foreground">
+    <ThemeProvider client:load>
+      <!-- Skip to main content — WCAG 2.4.1 -->
+      <a href="#main-content" class="skip-link">
+        Skip to main content
+      </a>
+
+      <FocusManager client:load />
+      <Header client:load />
+
+      <main id="main-content" class="flex-1" tabindex="-1">
+        <slot />
+      </main>
+
+      <Footer client:load />
+    </ThemeProvider>
+	</body>
+</html>

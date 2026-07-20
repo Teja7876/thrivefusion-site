@@ -1,14 +1,11 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+
+import Link from '@/components/ui/link';
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Accessibility Statement | ThriveFusion Alliance Foundation",
-  description: "Our commitment to digital accessibility and WCAG 2.2 AA compliance.",
-};
+
 
 export default function AccessibilityPage() {
   const lastUpdated = "July 20, 2026";

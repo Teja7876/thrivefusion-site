@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
+
+import Image from '@/components/ui/image';
+import Link from '@/components/ui/link';
 import { 
   Bot, 
   FileText, 
@@ -15,11 +15,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const metadata: Metadata = {
-  title: "EqualEdge AI | ThriveFusion Alliance Foundation",
-  description:
-    "EqualEdge AI is our upcoming AI-powered accessibility assistant designed to improve digital inclusion, document understanding, and WCAG testing.",
-};
+
 
 const features = [
   {

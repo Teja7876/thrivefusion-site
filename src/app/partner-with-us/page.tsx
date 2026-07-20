@@ -1,17 +1,13 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import { Building2, GraduationCap, HeartHandshake, Landmark, ArrowRight } from "lucide-react";
+
+import Image from '@/components/ui/image';
+import { Building2, GraduationCap, HeartHandshake, Landmark } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UnifiedContactForm } from "@/components/forms/UnifiedContactForm";
 
-export const metadata: Metadata = {
-  title: "Partner With Us | ThriveFusion Alliance Foundation",
-  description:
-    "Partner with ThriveFusion Alliance Foundation. We collaborate with corporations, NGOs, governments, and academic institutions to drive accessibility and inclusion.",
-};
+
 
 const partnershipTypes = [
   {

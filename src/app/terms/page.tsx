@@ -1,12 +1,9 @@
-import type { Metadata } from "next";
+
 
 import PageContainer from "@/components/layout/PageContainer";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Terms of Service | ThriveFusion Alliance Foundation",
-  description: "Terms of Service for using the ThriveFusion Alliance Foundation website and platforms.",
-};
+
 
 export default function TermsPage() {
   const lastUpdated = "July 20, 2026";

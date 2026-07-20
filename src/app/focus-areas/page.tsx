@@ -1,17 +1,13 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
+
+import Image from '@/components/ui/image';
+import Link from '@/components/ui/link';
 import { ArrowRight } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import { focusAreas } from "@/constants/focusAreas";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = {
-  title: "Focus Areas | ThriveFusion Alliance Foundation",
-  description:
-    "Explore our core focus areas: Digital Accessibility, Inclusive Education, Assistive Technology, Employment, Advocacy, and Community Support.",
-};
+
 
 export default function FocusAreasPage() {
   return (

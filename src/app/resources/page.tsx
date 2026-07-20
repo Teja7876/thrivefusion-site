@@ -1,15 +1,11 @@
-import type { Metadata } from "next";
-import Image from "next/image";
+
+import Image from '@/components/ui/image';
 import { BookOpen, Monitor, Smartphone, Video, FileText, CheckSquare, ExternalLink } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import { Badge } from "@/components/ui/badge";
 
-export const metadata: Metadata = {
-  title: "Accessibility Resources | ThriveFusion Alliance Foundation",
-  description:
-    "Curated guides, tools, tutorials, and checklists for building accessible digital experiences.",
-};
+
 
 const categories = ["All", "Guides", "Tools", "Videos", "Checklists"];
 

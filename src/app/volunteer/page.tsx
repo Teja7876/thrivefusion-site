@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import Image from "next/image";
+
+import Image from '@/components/ui/image';
 import {
   Heart,
   BookOpen,
@@ -14,11 +14,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { UnifiedContactForm } from "@/components/forms/UnifiedContactForm";
 
-export const metadata: Metadata = {
-  title: "Volunteer | ThriveFusion Alliance Foundation",
-  description:
-    "Join our community of volunteers. We need accessibility testers, educators, developers, and event volunteers to build an inclusive society.",
-};
+
 
 const roles = [
   {

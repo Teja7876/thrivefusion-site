@@ -1,0 +1,152 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+
+interface Stat {
+  value: number;
+  suffix: string;
+  label: string;
+  description: string;
+}
+
+const stats: Stat[] = [
+  {
+    value: 5000,
+    suffix: "+",
+    label: "Lives Impacted",
+    description: "Persons with disabilities reached through our programs",
+  },
+  {
+    value: 120,
+    suffix: "+",
+    label: "Active Volunteers",
+    description: "Dedicated individuals powering our mission",
+  },
+  {
+    value: 15,
+    suffix: "+",
+    label: "Programs Running",
+    description: "Active initiatives across education, tech, and employment",
+  },
+  {
+    value: 30,
+    suffix: "+",
+    label: "Partner Organizations",
+    description: "NGOs, corporations, and government bodies working with us",
+  },
+];
+
+function useCountUp(target: number, duration = 2000, enabled = false) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    let startTime: number | null = null;
+    let animationId: number;
+
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+
+      if (progress < 1) {
+        animationId = requestAnimationFrame(step);
+      }
+    };
+
+    animationId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationId);
+  }, [target, duration, enabled]);
+
+  return count;
+}
+
+function AnimatedStat({ stat, enabled }: { stat: Stat; enabled: boolean }) {
+  const count = useCountUp(stat.value, 1800, enabled);
+
+  return (
+    <div className="text-center">
+      <p
+        className="text-4xl font-extrabold text-primary lg:text-5xl"
+        aria-label={`${stat.value}${stat.suffix} ${stat.label}`}
+      >
+        {count.toLocaleString()}
+        {stat.suffix}
+      </p>
+      <p className="mt-2 text-base font-semibold">{stat.label}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{stat.description}</p>
+    </div>
+  );
+}
+
+export default function ImpactSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [animated, setAnimated] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !animated) {
+          setAnimated(true);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, [animated]);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative overflow-hidden bg-muted/20 py-24"
+      aria-labelledby="impact-heading"
+    >
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="grid items-center gap-16 lg:grid-cols-2">
+          {/* Image */}
+          <div className="overflow-hidden rounded-3xl shadow-2xl">
+            <Image
+              src="/images/gallery/Three Colleagues Chat in an Office.jpg"
+              alt="Three colleagues having an enthusiastic conversation in an accessible office environment."
+              width={800}
+              height={600}
+              className="h-72 w-full object-cover sm:h-96 lg:h-[440px]"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
+          </div>
+
+          {/* Stats */}
+          <div>
+            <span className="text-sm font-semibold uppercase tracking-widest text-primary">
+              Why It Matters
+            </span>
+            <h2
+              id="impact-heading"
+              className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl"
+            >
+              Why Accessibility Matters
+            </h2>
+            <div className="mt-8 space-y-6 text-base leading-relaxed text-muted-foreground">
+              <p>
+                Accessibility is not just a checkbox or a compliance requirement—it is a fundamental human right. When digital and physical spaces are designed without considering the diverse needs of all people, we inadvertently exclude millions from participating fully in society.
+              </p>
+              <p>
+                By building inclusive environments, we unlock human potential. Accessible technology ensures that students with disabilities can learn alongside their peers. Inclusive workplaces empower individuals to contribute their skills and achieve financial independence. Comprehensive advocacy drives systemic change, creating a society where dignity, respect, and equal opportunity are the norm.
+              </p>
+              <p>
+                At ThriveFusion Alliance Foundation, we believe that an accessible world is a better world for everyone. When we remove barriers, we don't just help persons with disabilities—we enrich our entire community with diverse perspectives and incredible talent.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

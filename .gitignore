@@ -1,46 +1,49 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  ThriveFusion Alliance Foundation — .gitignore                   ║
+# ╚══════════════════════════════════════════════════════════════════╝
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# PHP dependencies — INCLUDED in repo so Hostinger can serve them
+# The vendor/ dir IS committed to avoid needing Composer on Hostinger
+# (Hostinger shared does not guarantee Composer availability)
+# vendor/   ← DO NOT IGNORE
 
-# testing
-/coverage
+# Environment files — NEVER commit secrets
+.env
+.env.local
+.env.production
+.env.*
+!.env.example
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# OS artifacts
 .DS_Store
-*.pem
+Thumbs.db
+desktop.ini
 
-# debug
+# Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (for local Astro dev only — not deployed)
+node_modules/
+dist/
+.astro/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Astro source (not deployed to Hostinger)
+# These should be version controlled but not served directly by the web server
 
-# vercel
-.vercel
+# Temporary build artifacts
+*.log
+*.tmp
+/tmp/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-node_modules/
-.astro/
-dist/
-.env
-.env.local
+# Firebase Service Accounts
+*-firebase-adminsdk-*.json
+
+google-services.json

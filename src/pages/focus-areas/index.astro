@@ -1,7 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import PageContent from "@/app/focus-areas/page";
+import PageContent from "@/components/pages/focus-areas/page";
 ---
 <Layout title="Focus Areas | ThriveFusion Alliance Foundation" description="Explore our core focus areas: Digital Accessibility, Inclusive Education, Assistive Technology, Employment, Advocacy, and Community Support.">
-  <PageContent client:load />
+  <PageContent client:idle />
 </Layout>

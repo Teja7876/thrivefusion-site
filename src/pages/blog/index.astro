@@ -1,0 +1,32 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PageContainer from "@/components/layout/PageContainer";
+import BlogList from "@/components/blog/BlogList";
+---
+
+<Layout 
+  title="Blog | ThriveFusion Alliance Foundation"
+  description="Read the latest news, updates, and articles on accessibility, inclusion, and our flagship initiatives from ThriveFusion."
+>
+  <main class="bg-background min-h-screen">
+    <section class="bg-muted/30 py-20 text-center">
+      <PageContainer narrow>
+        <span class="text-sm font-semibold uppercase tracking-widest text-primary">
+          Our Voice
+        </span>
+        <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+          The ThriveFusion Blog
+        </h1>
+        <p class="mt-6 text-xl leading-8 text-muted-foreground">
+          Insights, updates, and stories about building a more accessible world.
+        </p>
+      </PageContainer>
+    </section>
+
+    <section class="py-24">
+      <PageContainer>
+        <BlogList client:load />
+      </PageContainer>
+    </section>
+  </main>
+</Layout>

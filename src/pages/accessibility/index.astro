@@ -1,7 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import PageContent from "@/app/accessibility/page";
+import PageContent from "@/components/pages/accessibility/page";
 ---
 <Layout title="Accessibility Statement | ThriveFusion Alliance Foundation" description="Our commitment to digital accessibility and WCAG 2.2 AA compliance.">
-  <PageContent client:load />
+  <PageContent client:idle />
 </Layout>

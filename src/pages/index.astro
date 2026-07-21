@@ -1,7 +1,27 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import PageContent from "@/app/page";
+import HeroSection from "@/components/sections/HeroSection";
+import AboutThriveFusionSection from "@/components/sections/AboutThriveFusionSection";
+import MissionSection from "@/components/sections/MissionSection";
+import EcosystemSection from "@/components/sections/EcosystemSection";
+import FocusAreasSection from "@/components/sections/FocusAreasSection";
+import ProjectsSection from "@/components/sections/ProjectsSection";
+import FeaturedProjectSection from "@/components/sections/FeaturedProjectSection";
+import ImpactSection from "@/components/sections/ImpactSection";
+import VolunteerCTASection from "@/components/sections/VolunteerCTASection";
+import PartnerCTASection from "@/components/sections/PartnerCTASection";
+import ContactSection from "@/components/sections/ContactSection";
 ---
 <Layout title="ThriveFusion Alliance Foundation — Empowering Every Ability" description="ThriveFusion Alliance Foundation empowers persons with disabilities through accessibility, inclusive education, assistive technology, skill development, and employment in India.">
-  <PageContent client:load />
+  <HeroSection />
+  <AboutThriveFusionSection />
+  <MissionSection />
+  <EcosystemSection />
+  <FocusAreasSection />
+  <ProjectsSection />
+  <FeaturedProjectSection />
+  <ImpactSection client:visible />
+  <VolunteerCTASection />
+  <PartnerCTASection />
+  <ContactSection />
 </Layout>

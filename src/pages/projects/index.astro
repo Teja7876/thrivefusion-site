@@ -1,7 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import PageContent from "@/app/projects/page";
+import PageContent from "@/components/pages/projects/page";
 ---
 <Layout title="Projects & Initiatives | ThriveFusion Alliance Foundation" description="Discover our active programs, including BuddyHub, EqualEdge AI, and accessibility services driving impact across India.">
-  <PageContent client:load />
+  <PageContent client:idle />
 </Layout>

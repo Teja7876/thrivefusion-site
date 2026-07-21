@@ -11,6 +11,7 @@ export default function Image({ src, alt, width, height, className, fill, style,
       height={height} 
       className={className} 
       loading={priority ? 'eager' : 'lazy'}
+      decoding="async"
       style={fill ? { position: 'absolute', height: '100%', width: '100%', inset: '0px', color: 'transparent', objectFit: 'cover', ...style } : style}
       {...props} 
     />

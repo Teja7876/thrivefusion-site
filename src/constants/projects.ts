@@ -1,76 +1,55 @@
 export const projects = [
   {
-    title: "BuddyHub",
+    title: "Thrive Assist",
     description:
-      "An accessible community platform connecting persons with disabilities, volunteers, scribes, sign language interpreters, helpers, and organizations.",
-    tagline: "Connecting abilities, building community.",
+      "An accessibility-first platform connecting Persons with Disabilities (PwDs) with trusted helpers, volunteers, scribes, sign language interpreters, caregivers, mobility assistants, and mentors through real-time requests and location-aware assistance.",
+    tagline: "Empowering independence through connected communities.",
     image: "/images/gallery/Two Colleagues Work on a Computer 2.jpg",
-    imageAlt:
-      "Two colleagues working together on a computer, representing the BuddyHub community platform.",
-    href: "/projects#buddyhub",
+    imageAlt: "Two colleagues working together on a computer, representing community assistance.",
+    href: "/projects#thrive-assist",
     status: "Active" as const,
-    tags: ["Community", "Accessibility", "Platform", "Volunteering"],
+    tags: ["Community", "Volunteers", "Scribes", "Real-time"],
     features: [
-      "Connect with volunteers and scribes",
+      "Real-time assistance requests",
       "Sign language interpreter network",
-      "Accessible event listings",
-      "Peer support groups",
+      "Location-aware matching",
+      "Secure messaging & scheduling",
     ],
   },
   {
-    title: "EqualEdge AI",
+    title: "Meatly",
     description:
-      "AI-powered accessibility assistant designed to improve digital inclusion, accessibility testing, document understanding, and productivity for persons with disabilities.",
-    tagline: "AI that makes technology accessible.",
-    image: "/images/gallery/Deb Works on her Laptop.jpg",
-    imageAlt:
-      "Deb working on her laptop, representing AI-powered accessibility technology.",
-    href: "/ai",
-    status: "In Development" as const,
-    tags: ["AI", "WCAG", "Productivity", "Testing"],
-    features: [
-      "Automated WCAG compliance testing",
-      "AI-generated alt text",
-      "Document accessibility analysis",
-      "Color contrast checking",
-    ],
-  },
-  {
-    title: "Accessibility Services",
-    description:
-      "Professional accessibility audits, WCAG compliance consulting, accessibility testing, training, and inclusive digital transformation services.",
-    tagline: "Expert accessibility for every organization.",
+      "A modern accessibility-first video conferencing platform built as an inclusive alternative to Zoom and Teams. Features screen reader optimization, keyboard accessibility, AI meeting assistance, live captions, and sign language support.",
+    tagline: "Meetings where everyone has a voice.",
     image: "/images/gallery/Rico in a Virtual Meeting.jpg",
-    imageAlt:
-      "Rico in a virtual meeting, representing remote accessibility consulting services.",
-    href: "/focus-areas#digital-accessibility",
+    imageAlt: "Professional in a virtual meeting, representing accessible video conferencing.",
+    href: "/projects#meatly",
     status: "Available" as const,
-    tags: ["Consulting", "WCAG", "Audit", "Training"],
+    tags: ["Video Conferencing", "Captions", "Accessible", "AI"],
     features: [
-      "WCAG 2.2 AA audit reports",
-      "Remediation guidance",
-      "Developer training workshops",
-      "Ongoing compliance monitoring",
+      "Screen reader & keyboard optimized",
+      "Live captions & transcription",
+      "Multilingual AI assistance",
+      "Sign language pin & collaborative workspaces",
     ],
   },
   {
-    title: "Future Initiatives",
+    title: "Thrive Learn",
     description:
-      "Upcoming programs focused on education, employment, assistive technology, digital literacy, entrepreneurship, and disability innovation.",
-    tagline: "Building tomorrow's inclusive world today.",
-    image: "/images/gallery/Young Woman Wearing Headphones Works on a Laptop.jpg",
-    imageAlt:
-      "A young woman wearing headphones working on a laptop, representing future technology initiatives.",
-    href: "/projects#future",
-    status: "Coming Soon" as const,
-    tags: ["Education", "Employment", "Innovation", "Future"],
+      "A comprehensive accessibility-first education platform that helps Persons with Disabilities study, gain skills, and prepare for careers with AI learning assistance, OCR, text-to-speech, and accessible assessments.",
+    tagline: "Education without barriers.",
+    image: "/images/gallery/Deb Works on her Laptop.jpg",
+    imageAlt: "Student working on a laptop, representing accessible learning technologies.",
+    href: "/projects#thrive-learn",
+    status: "In Development" as const,
+    tags: ["Education", "eLearning", "OCR", "AI Tutor"],
     features: [
-      "Digital literacy bootcamps",
-      "Disability entrepreneurship program",
-      "Inclusive employment portal",
-      "Assistive tech lending library",
+      "AI learning assistance & tutors",
+      "Document readers & OCR",
+      "Accessible notes & assessments",
+      "Progress tracking & certification",
     ],
-  },
+  }
 ] as const;
 
 export type Project = (typeof projects)[number];

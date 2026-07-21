@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import AdminLayout from '@/components/admin/AdminLayout';
+import Editor from '@/components/admin/Editor';
+---
+
+<Layout title="Edit Post">
+  <AdminLayout client:only="react">
+    <Editor client:load />
+  </AdminLayout>
+</Layout>

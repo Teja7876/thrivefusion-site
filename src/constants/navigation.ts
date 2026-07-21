@@ -9,6 +9,7 @@ import {
   Heart,
   Mail,
   Bot,
+  Newspaper,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -45,9 +46,9 @@ export const navigation: NavigationItem[] = [
     icon: BookOpen,
   },
   {
-    title: "EqualEdge AI",
-    href: "/ai",
-    icon: Bot,
+    title: "Blog",
+    href: "/blog",
+    icon: Newspaper,
   },
   {
     title: "Volunteer",

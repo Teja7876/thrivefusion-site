@@ -29,6 +29,7 @@ const navItems = [
   { title: "About", href: "/about", icon: Info },
   { title: "Focus Areas", href: "/focus-areas", icon: Briefcase },
   { title: "Projects", href: "/projects", icon: FolderKanban },
+  { title: "Blog", href: "/blog", icon: BookOpen },
   { title: "Resources", href: "/resources", icon: BookOpen },
   { title: "EqualEdge AI", href: "/ai", icon: Bot },
   { title: "Volunteer", href: "/volunteer", icon: Users },

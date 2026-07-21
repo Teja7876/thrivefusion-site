@@ -1,0 +1,10 @@
+{
+    "name": "thrivefusion/mail-service",
+    "description": "ThriveFusion Alliance Foundation - PHP mail service using PHPMailer",
+    "require": {
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}

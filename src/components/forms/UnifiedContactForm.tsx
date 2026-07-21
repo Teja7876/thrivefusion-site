@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { db } from "@/lib/firebase/client";
+import { collection, addDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,23 +84,14 @@ export function UnifiedContactForm({ defaultType = "General Contact" }: { defaul
     setIsSuccess(false);
 
     try {
-      const response = await fetch("/contact.php", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+      await addDoc(collection(db, "contact_submissions"), {
+        ...data,
+        createdAt: new Date().toISOString(),
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setIsSuccess(true);
-        reset();
-      } else {
-        setErrorMessage(result.message || "Failed to submit form. Please try again.");
-      }
+      setIsSuccess(true);
+      reset();
     } catch (error) {
+      console.error("Error submitting form:", error);
       setErrorMessage("An unexpected error occurred. Please try again later.");
     } finally {
       setIsSubmitting(false);

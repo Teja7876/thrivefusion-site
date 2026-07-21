@@ -1,7 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import PageContent from "@/app/about/page";
+import PageContent from "@/components/pages/about/page";
 ---
 <Layout title="About Us | ThriveFusion Alliance Foundation" description="Learn about our story, mission, and the passionate team driving digital accessibility and inclusion in India.">
-  <PageContent client:load />
+  <PageContent client:idle />
 </Layout>

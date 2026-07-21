@@ -3,8 +3,6 @@ import Image from '@/components/ui/image';
 import { Building2, GraduationCap, HeartHandshake, Landmark } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { UnifiedContactForm } from "@/components/forms/UnifiedContactForm";
 
 

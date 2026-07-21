@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { auth } from '@/lib/firebase/client';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);

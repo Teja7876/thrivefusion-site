@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/components/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from "date-fns";
 import { db } from "@/lib/firebase/client";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";

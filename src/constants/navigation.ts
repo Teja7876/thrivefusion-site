@@ -8,7 +8,6 @@ import {
   Handshake,
   Heart,
   Mail,
-  Bot,
   Newspaper,
 } from "lucide-react";
 

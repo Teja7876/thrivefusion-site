@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from "date-fns";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase/client";

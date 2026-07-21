@@ -1,10 +1,13 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import RegisterForm from '@/components/auth/RegisterForm';
+import GuestGuard from '@/components/auth/GuestGuard';
 ---
 
 <Layout title="Register" description="Create a new ThriveFusion account.">
   <div class="container flex items-center justify-center min-h-[calc(100vh-200px)] py-12">
-    <RegisterForm client:only="react" />
+    <GuestGuard client:only="react">
+      <RegisterForm />
+    </GuestGuard>
   </div>
 </Layout>

@@ -41,6 +41,7 @@ export default function Dashboard() {
       try {
         await deleteDoc(doc(db, 'posts', id));
         fetchPosts(); // Refresh list
+        alert('Post deleted successfully! Changes will be live in a few minutes.');
       } catch (error) {
         console.error("Error deleting post: ", error);
       }

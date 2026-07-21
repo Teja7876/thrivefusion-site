@@ -4,9 +4,13 @@ import { db } from "@/lib/firebase/client";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 
-export default function BlogList() {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface BlogListProps {
+  initialPosts?: any[];
+}
+
+export default function BlogList({ initialPosts = [] }: BlogListProps) {
+  const [posts, setPosts] = useState<any[]>(initialPosts);
+  const [loading, setLoading] = useState(initialPosts.length === 0);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -86,7 +90,7 @@ export default function BlogList() {
             </div>
             <div className="group relative mt-3 flex-grow">
               <h3 className="mt-3 text-2xl font-bold leading-8 text-foreground group-hover:text-primary transition-colors">
-                <a href={`/blog/post?slug=${post.slug || post.id}`}>
+                <a href={`/blog/${post.slug || post.id}`}>
                   <span className="absolute inset-0"></span>
                   {post.title}
                 </a>

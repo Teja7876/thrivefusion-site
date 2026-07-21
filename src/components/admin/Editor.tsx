@@ -108,12 +108,21 @@ export default function Editor({ postId: initialPostId }: EditorProps) {
           ...postData,
           createdAt: new Date().toISOString(),
         });
+        if (isPublished) {
+          alert('Post published successfully! It will be live in a few minutes.');
+        } else {
+          alert('Draft saved successfully!');
+        }
         window.location.href = `/admin/editor?id=${newDocRef.id}`;
       } else {
         const docRef = doc(db, 'posts', postId);
         await updateDoc(docRef, postData);
         setPublished(isPublished);
-        alert('Post saved successfully!');
+        if (isPublished) {
+          alert('Post published successfully! It will be live in a few minutes.');
+        } else {
+          alert('Post saved successfully!');
+        }
       }
     } catch (error) {
       console.error("Error saving post:", error);

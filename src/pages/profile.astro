@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import UserProfile from '@/components/auth/UserProfile';
+import AuthGuard from '@/components/auth/AuthGuard';
+---
+
+<Layout title="Your Profile" description="Manage your ThriveFusion account.">
+  <div class="container min-h-[calc(100vh-200px)] py-12">
+    <AuthGuard client:only="react">
+      <UserProfile />
+    </AuthGuard>
+  </div>
+</Layout>

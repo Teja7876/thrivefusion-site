@@ -37,10 +37,13 @@ const navItems = [
   { title: "Contact", href: "/contact", icon: Mail },
 ] as const;
 
-export default function Header() {
+import { AuthProvider, useAuth } from '@/components/auth/AuthContext';
+
+function HeaderContent() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -109,8 +112,23 @@ export default function Header() {
 
         {/* Right Side */}
         <div className="flex items-center gap-2">
+          {!loading && user ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/profile">Profile</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin">Dashboard</Link>
+              </Button>
+            </div>
+          ) : !loading ? (
+            <Button asChild variant="ghost" size="sm" className="hidden sm:flex">
+              <Link href="/login">Log In</Link>
+            </Button>
+          ) : null}
+
           {/* Donate CTA */}
-          <Button asChild size="sm" className="hidden sm:flex">
+          <Button asChild size="sm" className="hidden sm:flex ml-2">
             <Link href="/donate">
               <Heart className="mr-2 h-4 w-4" aria-hidden="true" />
               Donate
@@ -150,7 +168,7 @@ export default function Header() {
 
               <nav
                 aria-label="Mobile navigation"
-                className="flex flex-col p-4"
+                className="flex flex-col p-4 overflow-y-auto max-h-[calc(100vh-80px)]"
               >
                 <ul className="space-y-1" role="list">
                   {navItems.map((item) => {
@@ -189,7 +207,28 @@ export default function Header() {
                   })}
                 </ul>
 
-                <div className="mt-6 border-t pt-6">
+                <div className="mt-6 border-t pt-6 space-y-3">
+                  {!loading && user ? (
+                    <>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href="/profile" onClick={() => setMobileOpen(false)}>
+                          My Profile
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link href="/admin" onClick={() => setMobileOpen(false)}>
+                          Dashboard
+                        </Link>
+                      </Button>
+                    </>
+                  ) : !loading ? (
+                    <Button asChild variant="outline" className="w-full">
+                      <Link href="/login" onClick={() => setMobileOpen(false)}>
+                        Log In
+                      </Link>
+                    </Button>
+                  ) : null}
+
                   <Button asChild className="w-full" size="lg">
                     <Link href="/donate" onClick={() => setMobileOpen(false)}>
                       <Heart className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -203,5 +242,13 @@ export default function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+export default function Header() {
+  return (
+    <AuthProvider>
+      <HeaderContent />
+    </AuthProvider>
   );
 }

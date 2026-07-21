@@ -1,4 +1,4 @@
-import Image from '@/components/ui/image';
+
 import Link from '@/components/ui/link';
 import { Heart, ArrowRight } from "lucide-react";
 
@@ -12,24 +12,10 @@ export default function VolunteerCTASection() {
     >
       <div className="container mx-auto px-4 lg:px-8">
         <div className="relative overflow-hidden rounded-3xl">
-          {/* Background Image */}
-          <div className="absolute inset-0">
-            <Image
-              src="/images/gallery/A Small Group of Colleagues Work Together.jpg"
-              alt="A small group of diverse colleagues working together, representing inclusive teamwork."
-              fill
-              className="object-cover object-center"
-              sizes="100vw"
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.10 0.02 265 / 0.88) 0%, oklch(0.10 0.02 265 / 0.75) 60%, oklch(0.25 0.15 195 / 0.65) 100%)",
-              }}
-              aria-hidden="true"
-            />
-          </div>
+          {/* Background */}
+          <div className="absolute inset-0 bg-primary" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-primary via-primary to-accent opacity-50" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-background/20 via-transparent to-transparent opacity-30" />
 
           {/* Content */}
           <div className="relative z-10 px-8 py-16 text-center text-white sm:px-12 sm:py-20 lg:py-24">

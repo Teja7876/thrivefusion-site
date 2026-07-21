@@ -2,6 +2,24 @@
 import Layout from "@/layouts/Layout.astro";
 import PageContainer from "@/components/layout/PageContainer";
 import BlogList from "@/components/blog/BlogList";
+import { adminDb } from "@/lib/firebase/server";
+
+const posts: any[] = [];
+try {
+  const querySnapshot = await adminDb
+    .collection("posts")
+    .where("published", "==", true)
+    .get();
+
+  querySnapshot.forEach((doc: any) => {
+    posts.push({ id: doc.id, ...doc.data() });
+  });
+
+  // Sort by createdAt desc in JS to avoid needing a Firestore composite index
+  posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+} catch (e) {
+  console.error("Error fetching blog posts for index:", e);
+}
 ---
 
 <Layout 
@@ -25,7 +43,7 @@ import BlogList from "@/components/blog/BlogList";
 
     <section class="py-24">
       <PageContainer>
-        <BlogList client:load />
+        <BlogList client:load initialPosts={posts} />
       </PageContainer>
     </section>
   </main>

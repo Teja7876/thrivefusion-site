@@ -5,8 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import { db } from "@/lib/firebase/client";
-import { collection, addDoc } from "firebase/firestore";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,15 +83,33 @@ export function UnifiedContactForm({ defaultType = "General Contact" }: { defaul
     setIsSuccess(false);
 
     try {
-      await addDoc(collection(db, "contact_submissions"), {
-        ...data,
-        createdAt: new Date().toISOString(),
+      const response = await fetch("https://formsubmit.co/ajax/info@thrivefusion.org", {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            ...data,
+            _subject: `New Enquiry: ${data.type} from ${data.name}`,
+            _template: "table"
+        })
       });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const result = await response.json();
+      if (result.success === "false") {
+        throw new Error(result.message || "Failed to send message");
+      }
+
       setIsSuccess(true);
       reset();
     } catch (error) {
       console.error("Error submitting form:", error);
-      setErrorMessage("An unexpected error occurred. Please try again later.");
+      setErrorMessage("Unable to send your message right now. Please try again later or email us directly at info@thrivefusion.org.");
     } finally {
       setIsSubmitting(false);
     }

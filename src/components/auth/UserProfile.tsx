@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
-import { db } from '@/lib/firebase/client';
-import { doc, updateDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
 export default function UserProfile() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, logout, updateProfile } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -24,7 +20,7 @@ export default function UserProfile() {
   }
 
   if (!user) {
-    return null; // Should be handled by layout/guard
+    return null;
   }
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -33,15 +29,7 @@ export default function UserProfile() {
     setMessage({ text: '', type: '' });
 
     try {
-      // Update in Auth
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName });
-      }
-
-      // Update in Firestore
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { displayName });
-
+      await updateProfile({ displayName });
       setMessage({ text: 'Profile updated successfully!', type: 'success' });
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -93,7 +81,7 @@ export default function UserProfile() {
             </Button>
             
             <Button type="button" variant="destructive" onClick={() => {
-              signOut().then(() => window.location.href = '/');
+              logout().then(() => window.location.href = '/');
             }}>
               Log Out
             </Button>

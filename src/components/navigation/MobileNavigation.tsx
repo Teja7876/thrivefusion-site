@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from '@/components/ui/link';
 import { usePathname } from '@/components/ui/navigation';
-import { Menu, X, ChevronRight, Heart } from "lucide-react";
+import { Menu, X, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -78,14 +78,6 @@ export default function MobileNavigation() {
             })}
           </ul>
 
-          <div className="mt-6 border-t pt-6">
-            <Button asChild className="w-full" size="lg">
-              <Link href="/donate" onClick={() => setOpen(false)}>
-                <Heart className="mr-2 h-4 w-4" aria-hidden="true" />
-                Donate Now
-              </Link>
-            </Button>
-          </div>
         </nav>
       </SheetContent>
     </Sheet>

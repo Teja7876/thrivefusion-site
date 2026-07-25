@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
-import { db, storage } from '@/lib/firebase/client';
-import { doc, getDoc, setDoc, updateDoc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
+import { Bold, Italic, Heading, Link as LinkIcon, Quote, Code, List, Trash2, ArrowLeft, Loader2, Image as ImageIcon } from 'lucide-react';
 
 interface EditorProps {
   postId?: string;
@@ -47,18 +45,20 @@ export default function Editor({ postId: initialPostId }: EditorProps) {
   const fetchPost = async () => {
     setLoading(true);
     try {
-      const docRef = doc(db, 'posts', postId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setTitle(data.title || '');
-        setSlug(data.slug || '');
-        setContent(data.content || '');
-        setDescription(data.description || '');
-        setTags((data.tags || []).join(', '));
-        setCategories((data.categories || []).join(', '));
-        setImageUrl(data.imageUrl || '');
-        setPublished(data.published || false);
+      const res = await fetch(`/api/posts/${postId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const post = data.post;
+        if (post) {
+          setTitle(post.title || '');
+          setSlug(post.slug || '');
+          setContent(post.content || '');
+          setDescription(post.description || '');
+          setTags((post.tags || []).join(', '));
+          setCategories((post.categories || []).join(', '));
+          setImageUrl(post.imageUrl || '');
+          setPublished(post.published || false);
+        }
       }
     } catch (error) {
       console.error("Error fetching post:", error);
@@ -70,9 +70,17 @@ export default function Editor({ postId: initialPostId }: EditorProps) {
   const handleImageUpload = async (): Promise<string> => {
     if (!featuredImage) return imageUrl;
     
-    const fileRef = ref(storage, `blog/${Date.now()}_${featuredImage.name}`);
-    await uploadBytes(fileRef, featuredImage);
-    return await getDownloadURL(fileRef);
+    const formData = new FormData();
+    formData.append('file', featuredImage);
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Image upload failed');
+    return data.url;
   };
 
   const handleSave = async (isPublished: boolean) => {
@@ -86,76 +94,130 @@ export default function Editor({ postId: initialPostId }: EditorProps) {
         setImageUrl(finalImageUrl);
       }
 
-      const generatedSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      
-      const postData = {
-        title,
+      const generatedSlug = (slug || title)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+
+      const postPayload = {
+        title: title.trim(),
         slug: generatedSlug,
         content,
-        description,
+        description: description.trim(),
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
         categories: categories.split(',').map(c => c.trim()).filter(Boolean),
         imageUrl: finalImageUrl,
         published: isPublished,
-        authorId: user.uid,
-        authorName: user.displayName || 'Anonymous',
-        updatedAt: new Date().toISOString(),
       };
 
       if (postId === 'new') {
-        const newDocRef = doc(collection(db, 'posts'));
-        await setDoc(newDocRef, {
-          ...postData,
-          createdAt: new Date().toISOString(),
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postPayload),
         });
-        if (isPublished) {
-          alert('Post published successfully! It will be live in a few minutes.');
-        } else {
-          alert('Draft saved successfully!');
-        }
-        window.location.href = `/admin/editor?id=${newDocRef.id}`;
-      } else {
-        const docRef = doc(db, 'posts', postId);
-        await updateDoc(docRef, postData);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to create post');
+
         setPublished(isPublished);
-        if (isPublished) {
-          alert('Post published successfully! It will be live in a few minutes.');
-        } else {
-          alert('Post saved successfully!');
-        }
+        alert(isPublished ? 'Post published successfully!' : 'Draft saved successfully!');
+        window.location.href = `/admin/editor?id=${data.post.id}`;
+      } else {
+        const res = await fetch(`/api/posts/${postId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postPayload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update post');
+
+        setPublished(isPublished);
+        alert(isPublished ? 'Post published successfully!' : 'Changes saved successfully!');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving post:", error);
-      alert('Failed to save post');
+      alert(error.message || 'Failed to save post');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  const handleDelete = async () => {
+    if (postId === 'new') return;
+    if (confirm('Are you sure you want to delete this article?')) {
+      try {
+        const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+        if (res.ok) {
+          window.location.href = '/admin';
+        }
+      } catch (err) {
+        alert('Failed to delete post');
+      }
+    }
+  };
+
+  const insertFormatting = (prefix: string, suffix = '') => {
+    const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+
+    const replacement = `${prefix}${selectedText || 'text'}${suffix}`;
+    const newContent = content.substring(0, start) + replacement + content.substring(end);
+
+    setContent(newContent);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">{postId === 'new' ? 'Create New Post' : 'Edit Post'}</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setPreview(!preview)}>
-            {preview ? 'Edit Mode' : 'Preview'}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => window.location.href = '/admin'}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Button variant="secondary" onClick={() => handleSave(false)} disabled={saving}>
+          <h2 className="text-2xl font-bold">{postId === 'new' ? 'Create New Article' : 'Edit Article'}</h2>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {postId !== 'new' && (
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setPreview(!preview)}>
+            {preview ? 'Edit Code' : 'Live Preview'}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => handleSave(false)} disabled={saving}>
             Save Draft
           </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving}>
-            {published ? 'Update Published' : 'Publish'}
+          <Button size="sm" onClick={() => handleSave(!published)} disabled={saving}>
+            {published ? 'Unpublish' : 'Publish Article'}
           </Button>
         </div>
       </div>
 
       {preview ? (
-        <Card className="p-8 prose dark:prose-invert max-w-none">
-          <h1>{title || 'Untitled'}</h1>
-          {imageUrl && <img src={imageUrl} alt={title} className="rounded-lg w-full max-h-96 object-cover" />}
-          <ReactMarkdown>{content}</ReactMarkdown>
+        <Card className="p-8 prose dark:prose-invert max-w-none shadow-sm">
+          <div className="mb-6">
+            <h1 className="text-4xl font-extrabold mb-2">{title || 'Untitled Article'}</h1>
+            {description && <p className="text-xl text-muted-foreground">{description}</p>}
+          </div>
+          {imageUrl && (
+            <img src={imageUrl} alt={title} className="rounded-2xl w-full max-h-96 object-cover mb-8 shadow-md" />
+          )}
+          <ReactMarkdown>{content || '*No content written yet.*'}</ReactMarkdown>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -163,17 +225,50 @@ export default function Editor({ postId: initialPostId }: EditorProps) {
             <Card>
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Title</label>
-                  <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Post title" />
+                  <label className="text-sm font-medium">Article Title</label>
+                  <Input 
+                    value={title} 
+                    onChange={e => setTitle(e.target.value)} 
+                    placeholder="Enter descriptive post title" 
+                    className="text-lg font-semibold"
+                  />
                 </div>
-                
+
+                {/* Markdown Formatting Toolbar */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Content (Markdown)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Content (Markdown)</label>
+                    <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/30">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('**', '**')} title="Bold">
+                        <Bold className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('*', '*')} title="Italic">
+                        <Italic className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('## ')} title="Heading">
+                        <Heading className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('[', '](https://example.com)')} title="Link">
+                        <LinkIcon className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('> ')} title="Quote">
+                        <Quote className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('```\n', '\n```')} title="Code Block">
+                        <Code className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertFormatting('- ')} title="Bullet List">
+                        <List className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
                   <Textarea 
+                    id="content-textarea"
                     value={content} 
                     onChange={e => setContent(e.target.value)} 
-                    placeholder="Write your post here in Markdown..."
-                    className="min-h-[500px] font-mono"
+                    placeholder="Write article content using Markdown..."
+                    className="min-h-[480px] font-mono leading-relaxed text-sm"
                   />
                 </div>
               </CardContent>
@@ -184,30 +279,64 @@ export default function Editor({ postId: initialPostId }: EditorProps) {
             <Card>
               <CardContent className="p-6 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Slug</label>
-                  <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="custom-url-slug" />
+                  <label className="text-sm font-medium">SEO Slug / URL</label>
+                  <Input 
+                    value={slug} 
+                    onChange={e => setSlug(e.target.value)} 
+                    placeholder="e.g. accessibility-guide-2026" 
+                  />
+                  <p className="text-xs text-muted-foreground">Leave blank to auto-generate from title.</p>
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">SEO Description</label>
-                  <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief summary for search engines" />
+                  <label className="text-sm font-medium">SEO Excerpt / Description</label>
+                  <Textarea 
+                    value={description} 
+                    onChange={e => setDescription(e.target.value)} 
+                    placeholder="Short summary for search results and social cards..."
+                    className="h-24 text-sm" 
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Categories (comma separated)</label>
-                  <Input value={categories} onChange={e => setCategories(e.target.value)} placeholder="Technology, Education" />
+                  <Input 
+                    value={categories} 
+                    onChange={e => setCategories(e.target.value)} 
+                    placeholder="Accessibility, Inclusion, Advocacy" 
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Tags (comma separated)</label>
-                  <Input value={tags} onChange={e => setTags(e.target.value)} placeholder="react, accessibility" />
+                  <Input 
+                    value={tags} 
+                    onChange={e => setTags(e.target.value)} 
+                    placeholder="education, tech, awareness" 
+                  />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Featured Image</label>
-                  <Input type="file" accept="image/*" onChange={e => setFeaturedImage(e.target.files?.[0] || null)} />
-                  {imageUrl && !featuredImage && (
-                    <div className="mt-2 text-sm text-muted-foreground">Current image: <a href={imageUrl} target="_blank" rel="noreferrer" className="text-primary underline">View</a></div>
+                  <label className="text-sm font-medium flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4" />
+                    Featured Image
+                  </label>
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={e => setFeaturedImage(e.target.files?.[0] || null)} 
+                  />
+                  <Input 
+                    type="text" 
+                    value={imageUrl} 
+                    onChange={e => setImageUrl(e.target.value)} 
+                    placeholder="Or paste external Image URL" 
+                    className="mt-2 text-xs"
+                  />
+                  {imageUrl && (
+                    <div className="mt-2 rounded-lg overflow-hidden border">
+                      <img src={imageUrl} alt="Featured preview" className="w-full h-32 object-cover" />
+                    </div>
                   )}
                 </div>
               </CardContent>

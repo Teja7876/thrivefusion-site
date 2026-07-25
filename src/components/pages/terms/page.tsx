@@ -41,14 +41,7 @@ export default function TermsPage() {
             projects (like EqualEdge AI) are governed by their respective licenses.
           </p>
 
-          <h2 className="mt-12 text-2xl font-bold">4. Donations</h2>
-          <p className="mt-4">
-            All donations are voluntary and non-refundable. Tax exemption receipts under Section 80G 
-            (where applicable) will be issued based on the details provided during the transaction. 
-            We are not responsible for errors resulting from incorrect information supplied by the donor.
-          </p>
-
-          <h2 className="mt-12 text-2xl font-bold">5. Limitation of Liability</h2>
+          <h2 className="mt-12 text-2xl font-bold">4. Limitation of Liability</h2>
           <p className="mt-4">
             In no event shall {siteConfig.name}, nor its directors, employees, partners, agents, suppliers, 
             or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages, 
@@ -56,21 +49,21 @@ export default function TermsPage() {
             resulting from your access to or use of or inability to access or use the Services.
           </p>
 
-          <h2 className="mt-12 text-2xl font-bold">6. Governing Law</h2>
+          <h2 className="mt-12 text-2xl font-bold">5. Governing Law</h2>
           <p className="mt-4">
             These Terms shall be governed and construed in accordance with the laws of India, without regard 
             to its conflict of law provisions. Any disputes will be subject to the exclusive jurisdiction of 
             the courts in Hyderabad, Telangana.
           </p>
 
-          <h2 className="mt-12 text-2xl font-bold">7. Changes to Terms</h2>
+          <h2 className="mt-12 text-2xl font-bold">6. Changes to Terms</h2>
           <p className="mt-4">
             We reserve the right, at our sole discretion, to modify or replace these Terms at any time. 
             By continuing to access or use our Services after those revisions become effective, you agree 
             to be bound by the revised terms.
           </p>
 
-          <h2 className="mt-12 text-2xl font-bold">8. Contact Us</h2>
+          <h2 className="mt-12 text-2xl font-bold">7. Contact Us</h2>
           <p className="mt-4">
             If you have any questions about these Terms, please contact us at:
           </p>

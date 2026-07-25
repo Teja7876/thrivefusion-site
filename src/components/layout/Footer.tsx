@@ -33,7 +33,6 @@ const aboutLinks = [
 const getInvolvedLinks = [
   { title: "Volunteer", href: "/volunteer" },
   { title: "Partner With Us", href: "/partner-with-us" },
-  { title: "Donate", href: "/donate" },
   { title: "Contact", href: "/contact" },
 ];
 
@@ -146,13 +145,9 @@ export default function Footer() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={
-                      item.title === "Donate" 
-                        ? "text-sm font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
-                        : "text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
-                    }
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
                   >
-                    {item.title === "Donate" ? "Donate Now ↗" : item.title}
+                    {item.title}
                   </Link>
                 </li>
               ))}
@@ -274,6 +269,12 @@ export default function Footer() {
           <p className="text-center lg:text-right max-w-sm">
             Building a more accessible and inclusive future through education, technology, employment, and advocacy.
           </p>
+        </div>
+
+        {/* Footer Credit Section */}
+        <div className="mt-6 border-t border-border/40 pt-4 text-center text-xs text-muted-foreground space-y-1">
+          <p>Designed & Developed by Maskam Sai Teja</p>
+          <p>Quality Assurance & Testing by Sathish Kumar</p>
         </div>
       </div>
     </footer>

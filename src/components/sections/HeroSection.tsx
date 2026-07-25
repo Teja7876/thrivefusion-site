@@ -1,6 +1,6 @@
 
 import Link from '@/components/ui/link';
-import { Heart, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -49,17 +49,6 @@ export default function HeroSection() {
 
             {/* CTA Buttons */}
             <div className="mt-10 flex flex-wrap gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="rounded-full px-8 text-base font-semibold shadow-lg shadow-primary/30"
-              >
-                <Link href="/donate">
-                  Donate
-                  <Heart className="ml-2 h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
-
               <Button
                 asChild
                 variant="outline"

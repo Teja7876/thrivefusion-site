@@ -5,7 +5,6 @@ import Link from '@/components/ui/link';
 import { usePathname } from '@/components/ui/navigation';
 import {
   Menu,
-  Heart,
   X,
   Home,
   Info,
@@ -43,7 +42,7 @@ function HeaderContent() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -126,14 +125,6 @@ function HeaderContent() {
               <Link href="/login">Log In</Link>
             </Button>
           ) : null}
-
-          {/* Donate CTA */}
-          <Button asChild size="sm" className="hidden sm:flex ml-2">
-            <Link href="/donate">
-              <Heart className="mr-2 h-4 w-4" aria-hidden="true" />
-              Donate
-            </Link>
-          </Button>
 
           {/* Mobile Menu Trigger */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -228,13 +219,6 @@ function HeaderContent() {
                       </Link>
                     </Button>
                   ) : null}
-
-                  <Button asChild className="w-full" size="lg">
-                    <Link href="/donate" onClick={() => setMobileOpen(false)}>
-                      <Heart className="mr-2 h-4 w-4" aria-hidden="true" />
-                      Donate Now
-                    </Link>
-                  </Button>
                 </div>
               </nav>
             </SheetContent>

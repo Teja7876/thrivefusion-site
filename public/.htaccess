@@ -1,164 +1,20 @@
-# ╔══════════════════════════════════════════════════════════════════╗
-# ║  ThriveFusion Alliance Foundation — Apache Configuration         ║
-# ║  Hostinger Shared Hosting — Production Ready                     ║
-# ╚══════════════════════════════════════════════════════════════════╝
-
-Options -Indexes -MultiViews
-ServerSignature Off
-
-# ─── REWRITE ENGINE ──────────────────────────────────────────────────────────
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
+  RewriteEngine On
+  RewriteBase /
 
-    # Redirect www → non-www (uncomment if needed)
-    # RewriteCond %{HTTP_HOST} ^www\.thrivefusion\.org [NC]
-    # RewriteRule ^ https://thrivefusion.org%{REQUEST_URI} [L,R=301]
+  # Handle API requests routing to .php
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^api/(.*)$ api/$1.php [L,QSA]
 
-    # Force HTTPS (uncomment after SSL is active)
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  # Route posts detail query: /api/posts/[id] -> /api/posts/detail.php?id=[id]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^api/posts/([^/]+)$ api/posts/detail.php?id=$1 [L,QSA]
 
-    # Serve pre-built static files directly
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-
-    # Route SPA-style clean URLs → index.html in that folder
-    # e.g. /about → /about/index.html
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME}.html !-f
-    RewriteRule ^([^/]+)/?$ /$1/index.html [L]
-
-    # Deep nested routes
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.+)/?$ /$1/index.html [L]
+  # Serve HTML pages for static routes
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.*)$ $1.html [L]
 </IfModule>
-
-# ─── SECURITY HEADERS ────────────────────────────────────────────────────────
-<IfModule mod_headers.c>
-    # Prevent clickjacking
-    Header always set X-Frame-Options "SAMEORIGIN"
-
-    # Prevent MIME sniffing
-    Header always set X-Content-Type-Options "nosniff"
-
-    # Enable XSS protection (legacy browsers)
-    Header always set X-XSS-Protection "1; mode=block"
-
-    # Referrer policy
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-
-    # Permissions policy — disable unused features
-    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-
-    # HSTS — enable only after confirming HTTPS works (uncomment then)
-    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-
-    # Content Security Policy
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://thrivefusion.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
-
-    # Remove server version
-    Header unset X-Powered-By
-    Header always unset X-Powered-By
-</IfModule>
-
-# ─── PROTECT SENSITIVE FILES ──────────────────────────────────────────────────
-<FilesMatch "(^\.env|composer\.(json|lock)|\.git|vendor/.*\.php)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order deny,allow
-        Deny from all
-    </IfModule>
-</FilesMatch>
-
-# Protect vendor directory (PHPMailer lives here)
-<IfModule mod_rewrite.c>
-    RewriteRule ^vendor/ - [F,L]
-    RewriteRule ^composer\.(json|lock)$ - [F,L]
-</IfModule>
-
-# ─── PHP SETTINGS ─────────────────────────────────────────────────────────────
-<IfModule mod_php.c>
-    php_flag  display_errors       Off
-    php_flag  log_errors           On
-    php_value error_log            /tmp/thrivefusion-error.log
-    php_value upload_max_filesize  8M
-    php_value post_max_size        10M
-    php_value max_execution_time   30
-    php_value default_charset      UTF-8
-</IfModule>
-
-# ─── MIME TYPES ───────────────────────────────────────────────────────────────
-<IfModule mod_mime.c>
-    AddType application/javascript         .js .mjs
-    AddType text/css                       .css
-    AddType image/webp                     .webp
-    AddType image/avif                     .avif
-    AddType image/svg+xml                  .svg
-    AddType font/woff                      .woff
-    AddType font/woff2                     .woff2
-    AddType application/manifest+json      .webmanifest
-</IfModule>
-
-# ─── COMPRESSION ─────────────────────────────────────────────────────────────
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css text/javascript
-    AddOutputFilterByType DEFLATE application/javascript application/json
-    AddOutputFilterByType DEFLATE image/svg+xml font/woff font/woff2
-</IfModule>
-
-# ─── CACHING ──────────────────────────────────────────────────────────────────
-<IfModule mod_expires.c>
-    ExpiresActive On
-
-    # HTML — short cache (pages can update)
-    ExpiresByType text/html                "access plus 1 hour"
-
-    # CSS & JS (hashed filenames from Astro — safe to cache long)
-    ExpiresByType text/css                 "access plus 1 year"
-    ExpiresByType application/javascript   "access plus 1 year"
-
-    # Images
-    ExpiresByType image/jpeg               "access plus 6 months"
-    ExpiresByType image/png                "access plus 6 months"
-    ExpiresByType image/webp               "access plus 6 months"
-    ExpiresByType image/avif               "access plus 6 months"
-    ExpiresByType image/svg+xml            "access plus 6 months"
-    ExpiresByType image/x-icon             "access plus 6 months"
-
-    # Fonts
-    ExpiresByType font/woff                "access plus 1 year"
-    ExpiresByType font/woff2               "access plus 1 year"
-
-    # Sitemap / robots — refresh more often
-    ExpiresByType application/xml          "access plus 1 day"
-    ExpiresByType text/xml                 "access plus 1 day"
-    ExpiresByType text/plain               "access plus 1 day"
-</IfModule>
-
-<IfModule mod_headers.c>
-    # Force no-cache for HTML
-    <FilesMatch "\.html$">
-        Header set Cache-Control "no-cache, must-revalidate"
-    </FilesMatch>
-
-    # Long cache for hashed assets
-    <FilesMatch "\.(css|js|woff|woff2)$">
-        Header set Cache-Control "public, max-age=31536000, immutable"
-    </FilesMatch>
-
-    # Images
-    <FilesMatch "\.(jpg|jpeg|png|webp|avif|svg|ico)$">
-        Header set Cache-Control "public, max-age=15552000"
-    </FilesMatch>
-</IfModule>
-
-# ─── CUSTOM ERROR PAGES ───────────────────────────────────────────────────────
-ErrorDocument 404 /index.html
-ErrorDocument 403 /index.html
-ErrorDocument 500 /index.html

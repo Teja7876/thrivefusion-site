@@ -200,6 +200,52 @@ export default function AboutPage() {
           </div>
         </PageContainer>
       </section>
+
+      {/* Board of Directors Section */}
+      <section className="bg-muted/30 py-24" aria-labelledby="board-heading">
+        <PageContainer>
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="text-sm font-semibold uppercase tracking-widest text-primary">
+              Governance & Vision
+            </span>
+            <h2
+              id="board-heading"
+              className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl"
+            >
+              Board of Directors
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Guiding our strategic vision and commitment to inclusion.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+            {/* Director 1 */}
+            <article className="rounded-3xl border bg-card p-8 shadow-sm transition-all hover:shadow-md text-center flex flex-col items-center">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary font-extrabold text-2xl border-2 border-primary/20 shadow-inner" aria-hidden="true">
+                MST
+              </div>
+              <h3 className="text-2xl font-bold text-foreground">Maskam Sai Teja</h3>
+              <p className="mt-1 text-sm font-semibold text-primary">Board of Director</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Co-Founder, ThriveFusion Alliance Foundation
+              </p>
+            </article>
+
+            {/* Director 2 */}
+            <article className="rounded-3xl border bg-card p-8 shadow-sm transition-all hover:shadow-md text-center flex flex-col items-center">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary font-extrabold text-2xl border-2 border-primary/20 shadow-inner" aria-hidden="true">
+                SK
+              </div>
+              <h3 className="text-2xl font-bold text-foreground">Sathish Kumar</h3>
+              <p className="mt-1 text-sm font-semibold text-primary">Board of Director</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Co-Founder, ThriveFusion Alliance Foundation
+              </p>
+            </article>
+          </div>
+        </PageContainer>
+      </section>
     </main>
   );
 }

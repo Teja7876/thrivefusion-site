@@ -27,7 +27,6 @@ export default function PrivacyPage() {
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-6">
             <li>Register as a volunteer or partner.</li>
-            <li>Make a donation.</li>
             <li>Sign up for our newsletter.</li>
             <li>Contact us via our website forms or email.</li>
           </ul>
@@ -42,7 +41,6 @@ export default function PrivacyPage() {
             We use the information we collect or receive for the following purposes:
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-6">
-            <li><strong>To facilitate donations:</strong> Processing payments and issuing 80G tax receipts.</li>
             <li><strong>To manage volunteers:</strong> Organizing community programs and events.</li>
             <li><strong>To send administrative information:</strong> Sending you updates, newsletters, or policy changes.</li>
             <li><strong>To improve our services:</strong> Analyzing usage data to improve our website's accessibility and performance.</li>
@@ -54,7 +52,6 @@ export default function PrivacyPage() {
             to comply with laws, to protect your rights, or to fulfill organizational obligations. We may share data with:
           </p>
           <ul className="mt-4 list-disc space-y-2 pl-6">
-            <li>Payment processors (e.g., Razorpay) exclusively for completing donation transactions.</li>
             <li>Government authorities if required by law (e.g., FCRA or Income Tax compliance in India).</li>
           </ul>
 

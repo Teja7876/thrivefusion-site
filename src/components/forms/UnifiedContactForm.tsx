@@ -14,7 +14,6 @@ const enquiryOptions = [
   "General Contact",
   "Volunteer",
   "Partnership",
-  "Donation Enquiry",
   "Request a Scribe",
   "Accessibility Support",
   "EqualEdge AI",
@@ -35,8 +34,6 @@ const formSchema = z.object({
   // Partnership
   organization: z.string().optional(),
   partnershipType: z.string().optional(),
-  // Donation
-  amount: z.string().optional(),
   // Scribe & Accessibility
   serviceType: z.string().optional(),
   dateRequired: z.string().optional(),
@@ -296,21 +293,6 @@ export function UnifiedContactForm({ defaultType = "General Contact" }: { defaul
               <option value="Technology Provider">Technology Provider</option>
             </select>
           </div>
-        </div>
-      )}
-
-      {selectedType === "Donation Enquiry" && (
-        <div>
-          <label htmlFor="amount" className="block text-sm font-medium">
-            Intended Donation Amount (INR)
-          </label>
-          <Input 
-            id="amount" 
-            type="text" 
-            placeholder="e.g. 5000"
-            {...register("amount")} 
-            className="mt-2 h-11 rounded-xl"
-          />
         </div>
       )}
 

@@ -6,7 +6,6 @@ import {
   BookOpen,
   Users,
   Handshake,
-  Heart,
   Mail,
   Newspaper,
 } from "lucide-react";
@@ -58,12 +57,6 @@ export const navigation: NavigationItem[] = [
     title: "Partner",
     href: "/partner-with-us",
     icon: Handshake,
-  },
-  {
-    title: "Donate",
-    href: "/donate",
-    icon: Heart,
-    highlight: true,
   },
   {
     title: "Contact",

@@ -31,6 +31,46 @@ $db_pass = getenv('MYSQL_PASSWORD') ?: (getenv('DB_PASSWORD') ?: '');
 $db_name = getenv('MYSQL_DATABASE') ?: (getenv('DB_NAME') ?: 'thrivefusion_db');
 $db_port = getenv('MYSQL_PORT') ?: (getenv('DB_PORT') ?: 3306);
 
+function ensureDatabaseTables($pdo) {
+    if (!$pdo) return;
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(36) PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NULL,
+                display_name VARCHAR(255) NOT NULL,
+                photo_url TEXT NULL,
+                role VARCHAR(50) DEFAULT 'user',
+                google_id VARCHAR(255) NULL,
+                reset_token VARCHAR(255) NULL,
+                reset_token_expires DATETIME NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL
+            );
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS posts (
+                id VARCHAR(36) PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                slug VARCHAR(255) UNIQUE NOT NULL,
+                content LONGTEXT NOT NULL,
+                description TEXT NULL,
+                tags TEXT NULL,
+                categories TEXT NULL,
+                image_url TEXT NULL,
+                published TINYINT(1) DEFAULT 0,
+                author_id VARCHAR(36) NOT NULL,
+                author_name VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL
+            );
+        ");
+    } catch (Exception $e) {
+        // Table creation errors ignored if already existing
+    }
+}
+
 function getPDOConnection() {
     global $db_host, $db_user, $db_pass, $db_name, $db_port;
     static $pdo = null;
@@ -47,9 +87,27 @@ function getPDOConnection() {
             PDO::ATTR_EMULATE_PREPARES => false,
         ];
         $pdo = new PDO($dsn, $db_user, $db_pass, $options);
+        ensureDatabaseTables($pdo);
         return $pdo;
     } catch (PDOException $e) {
-        // Fallback for local environment if MySQL server is not running locally
+        error_log('[ThriveFusion DB Error]: MySQL connection failed: ' . $e->getMessage());
+
+        // Fallback to SQLite ONLY in local unconfigured dev environment when no env vars are defined
+        $isEnvConfigured = !empty(getenv('MYSQL_HOST')) || !empty(getenv('DB_HOST')) || !empty(getenv('MYSQL_USER')) || !empty(getenv('DB_USER'));
+        if (!$isEnvConfigured) {
+            try {
+                $sqlitePath = __DIR__ . '/database.sqlite';
+                $pdo = new PDO("sqlite:" . $sqlitePath, null, null, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                ]);
+                ensureDatabaseTables($pdo);
+                return $pdo;
+            } catch (PDOException $e2) {
+                return null;
+            }
+        }
+
         return null;
     }
 }

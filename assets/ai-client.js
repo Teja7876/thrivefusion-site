@@ -7,8 +7,7 @@
 (function () {
   'use strict';
 
-  // Configurable Worker URL (Local dev fallback + Production Cloudflare Worker domain)
-  const WORKER_URL = window.LOCATION_OVERRIDE_WORKER || 'https://equaledge-ai.thrivefusion.workers.dev';
+  const WORKER_ENDPOINT = 'https://equaledge-ai.equaledge1ai.workers.dev/ask';
 
   document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('ai-query-form');
@@ -51,11 +50,9 @@
       input.value = '';
 
       try {
-        const response = await fetch(`${WORKER_URL}/ask`, {
+        const response = await fetch(WORKER_ENDPOINT, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question: question })
         });
 

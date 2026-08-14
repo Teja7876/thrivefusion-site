@@ -40,12 +40,17 @@ if (!in_array($mimeType, $allowedMimeTypes)) {
     exit();
 }
 
-// Generate unique filename
-$ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-$sanitizedBase = preg_replace('/[^a-zA-Z0-9.-]/', '_', pathinfo($file['name'], PATHINFO_FILENAME));
-$filename = time() . '_' . $sanitizedBase . '.' . $ext;
+$extMap = [
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/webp' => 'webp',
+    'image/gif' => 'gif',
+    'image/svg+xml' => 'svg'
+];
+$safeExt = $extMap[$mimeType] ?? 'jpg';
+$filename = generateUUID() . '.' . $safeExt;
 
-// Target upload directory (dist/api/upload.php → dist/uploads/)
+// Target upload directory
 $uploadDir = __DIR__ . '/../uploads/';
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);

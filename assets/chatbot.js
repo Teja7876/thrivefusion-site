@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const WORKER_URL = 'https://equaledge-ai.thrivefusion.workers.dev';
+  const WORKER_ENDPOINT = 'https://equaledge-ai.equaledge1ai.workers.dev/ask';
 
   function initChatbot() {
     if (document.getElementById('ai-chatbot-widget')) return;
@@ -171,13 +171,13 @@
 
       try {
         announce('Searching legal knowledge base and generating answer...');
-        const res = await fetch(`${WORKER_URL}/ask`, {
+        const res = await fetch(WORKER_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ question })
         });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 

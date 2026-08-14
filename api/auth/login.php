@@ -13,33 +13,33 @@ if (empty($email) || empty($password)) {
 
 $pdo = getPDOConnection();
 
-if ($pdo) {
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
+if (!$pdo) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Database connection failed. Unable to authenticate.']);
+    exit();
+}
 
-    if (!$user || empty($user['password_hash']) || !password_verify($password, $user['password_hash'])) {
-        http_response_code(401);
-        echo json_encode(['error' => 'Invalid email or password.']);
-        exit();
-    }
+$stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+$stmt->execute([$email]);
+$user = $stmt->fetch();
 
-    $_SESSION['user_uid'] = $user['id'];
-    $_SESSION['user_email'] = $user['email'];
-    $_SESSION['user_role'] = $user['role'] ?: 'user';
-
-    echo json_encode([
-        'success' => true,
-        'user' => [
-            'uid' => $user['id'],
-            'email' => $user['email'],
-            'displayName' => $user['display_name'],
-            'photoURL' => $user['photo_url'],
-            'role' => $user['role'] ?: 'user'
-        ]
-    ]);
-} else {
-    // Development fallback
+if (!$user || empty($user['password_hash']) || !password_verify($password, $user['password_hash'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Invalid email or password.']);
+    exit();
 }
+
+$_SESSION['user_uid'] = $user['id'];
+$_SESSION['user_email'] = $user['email'];
+$_SESSION['user_role'] = $user['role'] ?: 'user';
+
+echo json_encode([
+    'success' => true,
+    'user' => [
+        'uid' => $user['id'],
+        'email' => $user['email'],
+        'displayName' => $user['display_name'],
+        'photoURL' => $user['photo_url'],
+        'role' => $user['role'] ?: 'user'
+    ]
+]);

@@ -23,12 +23,18 @@
               type="button" 
               aria-expanded="false" 
               aria-controls="ai-chatbot-panel" 
-              aria-label="Open EqualEdge AI Assistant"
+              aria-label="EqualEdge AI Assistant - Click to open"
+              title="EqualEdge AI Assistant"
               class="flex items-center gap-2.5 rounded-full bg-primary px-5 py-3.5 text-primary-foreground shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring focus-visible:ring-offset-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse" aria-hidden="true">
-          <path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12 2.1 12.1"></path><path d="M12 12 19 5"></path>
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" aria-hidden="true">
+          <path d="M12 8V4H8"></path>
+          <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+          <path d="M2 14h2"></path>
+          <path d="M20 14h2"></path>
+          <path d="M15 13v2"></path>
+          <path d="M9 13v2"></path>
         </svg>
-        <span class="font-bold text-sm tracking-wide">EqualEdge AI</span>
+        <span class="font-extrabold text-sm tracking-wide">EqualEdge AI</span>
       </button>
 
       <!-- Chat Modal Window -->

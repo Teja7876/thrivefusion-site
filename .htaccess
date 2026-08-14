@@ -1,0 +1,116 @@
+# ============================================================
+# ThriveFusion Alliance Foundation
+# Apache .htaccess — Hostinger Shared Hosting
+# Static Astro Site (trailingSlash: never, format: file)
+# + PHP API Backend
+# ============================================================
+
+# ── Directory Listing & Index Files ─────────────────────────
+IndexIgnore *
+DirectoryIndex index.html index.php
+
+# ── MIME Types ───────────────────────────────────────────────
+<IfModule mod_mime.c>
+  AddType application/javascript          .js .mjs
+  AddType text/css                        .css
+  AddType image/svg+xml                   .svg .svgz
+  AddType image/webp                      .webp
+  AddType image/avif                      .avif
+  AddType font/woff                       .woff
+  AddType font/woff2                      .woff2
+  AddType application/json               .json
+  AddType text/html                       .html
+</IfModule>
+
+# ── Security Headers & Caching ─────────────────────────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Aggressively cache hashed static assets (they have content hashes in filename)
+  <FilesMatch "\.(css|js|mjs|woff|woff2|ttf|otf|eot|webp|avif|png|jpg|jpeg|gif|ico|svg)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Do not cache HTML (always fetch fresh)
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+# ── Access Control Rules ─────────────────────────────────────
+# Allow PHP file execution for backend scripts
+<FilesMatch "\.php$">
+  Require all granted
+</FilesMatch>
+
+# Allow public access to all web static files
+<FilesMatch "\.(html|css|js|mjs|json|svg|png|jpg|jpeg|webp|avif|ico|woff|woff2|xml|txt)$">
+  Require all granted
+</FilesMatch>
+
+# Block Sensitive / Non-Web / Configuration Files
+<FilesMatch "(^\.env|\.gitignore|\.git|composer\.json|composer\.lock|package\.json|package-lock\.json|tsconfig\.json|\.gitkeep)$">
+  Require all denied
+</FilesMatch>
+
+# Block hidden files (starting with dot) except .htaccess
+<FilesMatch "^\.(?!htaccess)">
+  Require all denied
+</FilesMatch>
+
+# ── Gzip Compression ─────────────────────────────────────────
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json text/xml application/xml text/plain image/svg+xml
+</IfModule>
+
+# ── URL Rewriting ─────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Canonicalize: strip trailing slashes for non-directories
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} ^/(.+)/$
+  RewriteRule ^(.+)/$ /$1 [R=301,L]
+
+  # 2. Existing File or Directory → Serve Directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 3. API Route: /api/posts/[slug] → /api/posts/detail.php?id=[slug]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^api/posts/([^/]+)/?$ api/posts/detail.php?id=$1 [L,QSA]
+
+  # 4. API Extensionless PHP: /api/X → /api/X.php
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^api/(.+)$ api/$1.php [L,QSA]
+
+  # 5. Extensionless HTML pages (e.g. /about -> /about.html, /contact -> /contact.html)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.+)$ $1.html [L]
+
+  # 6. Directory index fallback (e.g. /directors/maskam-sai-teja/ -> /directors/maskam-sai-teja/index.html)
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_FILENAME}/index.html -f
+  RewriteRule ^(.+)/$ $1/index.html [L]
+
+  # 7. Fallback to /index.html for single-page routing
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+# ── Custom Error Documents ────────────────────────────────────
+ErrorDocument 403 /index.html
+ErrorDocument 404 /index.html
+

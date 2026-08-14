@@ -1,0 +1,12 @@
+# Uploads Directory — Allow serving uploaded image files
+# Block execution of PHP and scripts for security
+Options -Indexes -ExecCGI
+
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|cgi|sh|bash)$">
+  Require all denied
+</FilesMatch>
+
+# Allow image, video, and document file types only
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico|avif|pdf|mp4|mp3|zip)$">
+  Require all granted
+</FilesMatch>

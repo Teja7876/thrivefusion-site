@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Block admin area
+Disallow: /admin
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://thrivefusion.org/sitemap-index.xml

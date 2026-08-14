@@ -1,0 +1,1 @@
+import"./rolldown-runtime.QTnfLwEv.js";import{rt as e}from"./lucide.0WlbMWxx.js";import{y as t}from"./radix-vendor.DvxS5UNu.js";e();var n=t();function r({href:e,children:t,className:r,...i}){return(0,n.jsx)(`a`,{href:typeof e==`object`&&e?e.pathname:e,className:r,...i,children:t})}export{r as t};

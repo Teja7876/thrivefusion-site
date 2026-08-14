@@ -1,0 +1,1 @@
+import{y as e}from"./radix-vendor.DvxS5UNu.js";import{t}from"./utils.B6KiDbIe.js";var n=e();function r({children:e,className:r,narrow:i=!1}){return(0,n.jsx)(`div`,{className:t(`container mx-auto px-4 lg:px-8`,i?`max-w-4xl`:`max-w-7xl`,r),children:e})}export{r as t};

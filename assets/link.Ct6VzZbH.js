@@ -1,0 +1,1 @@
+import{y as e}from"./radix-vendor.DgQb7Ffo.js";var t=e();function n({href:e,children:n,className:r,...i}){return(0,t.jsx)(`a`,{href:typeof e==`object`&&e?e.pathname:e,className:r,...i,children:n})}export{n as t};

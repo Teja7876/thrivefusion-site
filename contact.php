@@ -256,7 +256,15 @@ $smtpHost     = 'smtp.hostinger.com';
 $smtpPort     = 465;
 $smtpEncrypt  = PHPMailer::ENCRYPTION_SMTPS;  // SSL
 $smtpUser     = 'info@thrivefusion.org';
-$smtpPass     = getenv('SMTP_PASS') ?: 'YOUR_EMAIL_PASSWORD'; // Replace or set env var
+$smtpPass     = getenv('SMTP_PASS') ?: '';
+if (empty($smtpPass) || $smtpPass === 'YOUR_EMAIL_PASSWORD') {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'SMTP authentication is not configured on the server. Please contact administrator directly at info@thrivefusion.org.'
+    ]);
+    exit;
+}
 $fromAddress  = 'info@thrivefusion.org';
 $fromName     = 'ThriveFusion Alliance Foundation';
 $toAddress    = 'info@thrivefusion.org';

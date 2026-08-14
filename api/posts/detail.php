@@ -2,11 +2,12 @@
 require_once __DIR__ . '/../config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
-$id = $_GET['id'] ?? null;
+$rawId = $_GET['id'] ?? null;
+$id = $rawId ? preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$rawId) : null;
 
 if (!$id) {
     http_response_code(400);
-    echo json_encode(['error' => 'Post identifier is required.']);
+    echo json_encode(['error' => 'Post identifier is required and must contain valid characters.']);
     exit();
 }
 

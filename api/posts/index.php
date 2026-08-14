@@ -4,9 +4,9 @@ require_once __DIR__ . '/../config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    $q = isset($_GET['q']) ? strtolower(trim($_GET['q'])) : '';
-    $category = isset($_GET['category']) ? strtolower(trim($_GET['category'])) : '';
-    $tag = isset($_GET['tag']) ? strtolower(trim($_GET['tag'])) : '';
+    $q = isset($_GET['q']) ? preg_replace('/[^\w\s-]/', '', strtolower(trim($_GET['q']))) : '';
+    $category = isset($_GET['category']) ? preg_replace('/[^\w-]/', '', strtolower(trim($_GET['category']))) : '';
+    $tag = isset($_GET['tag']) ? preg_replace('/[^\w-]/', '', strtolower(trim($_GET['tag']))) : '';
     $isAdminView = isset($_GET['admin']) && $_GET['admin'] === 'true';
 
     if ($isAdminView) {

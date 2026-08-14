@@ -1,6 +1,6 @@
 /**
  * EqualEdge AI — Floating Accessibility Chatbot Widget
- * Direct integration with Cloudflare Worker RAG Engine (https://equaledge-ai.thrivefusion.workers.dev/ask)
+ * Direct integration with Cloudflare Worker RAG Engine (https://equaledge-ai.equaledge1ai.workers.dev/ask)
  * WCAG 2.2 AA Compliant, Keyboard Navigation, Focus Trap, ARIA Live Announcements
  */
 
